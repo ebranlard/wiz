@@ -1,0 +1,5 @@
+numpy>=1.15.2
+matplotlib 
+future
+scipy
+# mpmath

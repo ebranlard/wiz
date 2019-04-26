@@ -1,0 +1,13 @@
+_refs
+InductionZone-DG
+*.pyc
+*.egg-info
+*pytest_cache
+
+vortexcylinder/fU*
+vortexcylinder/fV*
+
+
+*.png
+*.mp4
+ffmpeg*
