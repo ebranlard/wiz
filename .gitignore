@@ -7,6 +7,8 @@ InductionZone-DG
 vortexcylinder/fU*
 vortexcylinder/fV*
 
+vortexcylinder/fGetInductions_Prescribed_CT_CQ2.py
+vortexcylinder/fInductionCoefficientsCylinders.py
 
 *.png
 *.mp4
