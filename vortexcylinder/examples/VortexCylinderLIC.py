@@ -1,17 +1,6 @@
 """
 References:
     [1] E. Branlard - Wind Turbine Aerodynamics and Vorticity Based Method, Springer, 2017
-    [2] E. Branlard, M. Gaunaa - Cylindrical vortex wake model: skewed cylinder, application to yawed or tilted rotors - Wind Energy, 2015
-
-Coordinate systems
-   c coordinate system used in see [2], rotor in plane z_c=0
-   w wind coordinate system where z_w is the wind direction
-   theta_yaw : yaw angle, positive around y, pointing upward
-
-   x_c =  x_w cost + z_w sint
-   y_c =  y_w
-   z_c = -x_w sint + z_w cost
-
 """
 #--- Legacy python 2.7
 from __future__ import absolute_import
@@ -24,33 +13,28 @@ import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
 # --- Local
-from vortexcylinder.VortexCylinderSkewed import skewedcylinder_tang_semi_inf_u
-from vortexcylinder.VortexRing import ring_u
+from vortexcylinder.VortexCylinder import cylinder_tang_semi_inf_u
 try:
     from pybra.colors import darkrainbow as cmap
     from pybra.colors import darkrainbow, adjust_color_lightness, manual_colorbar
     from pybra.curves import streamQuiver
     from pybra.lic    import lic
-    from pybra.tictoc import Timer
 except:
     raise Exception('This script requires the package `pybra` from https://github.com/ebranlard/pybra/')
 
-
 # --- Parameters
-bWindCoord=True
 bAddFlow=True
-R         = 1
+R=1
+XLIM=[-3*R,3*R] # 
+ZLIM=[-3*R,3*R] # 
 if bAddFlow:
-	CLIM=[0.3,1.1]
+    CLIM=[0.3,1.1]
+    gamma_t=-2/3
 else:
-    CLIM=[0.0,0.1]
-XLIM       = [-3*R,3*R] # 
-ZLIM       = [-3*R,3*R] # 
-nx = 400    # Number of points for velocity evaluation
+    CLIM=[0.0,1.1]
+    gamma_t=-1
+nx = 600    # Number of points for velocity evaluation
 nz = nx 
-CT        = 0.95
-theta_yaw =-30*np.pi/180   # rad
-U0        = 1
 
 # LIC params
 nLICKernel=31
@@ -68,55 +52,24 @@ freq=5
 TMAX=5/freq
 nFrames=220
 
-# --- Derived params
-chi= theta_yaw*(1+0.3*(1-np.sqrt(1-CT))) # rad
-if CT==0.4:
-    gamma_t = -0.21341 # CT=0.4
-elif CT==0.6:
-    gamma_t = -0.40 # 
-else:
-    gamma_t = -0.60414 # CT=0.95
-ny = nx
-m  = np.tan(chi) 
-
-def Tw2c(x_w,y_w,z_w):
-    if bWindCoord:
-        x_c =  x_w * np.cos(theta_yaw) + z_w * np.sin(theta_yaw)
-        y_c =  y_w
-        z_c = -x_w * np.sin(theta_yaw) + z_w * np.cos(theta_yaw)
-    else:
-        x_c,y_c,z_c = x_w,y_w,z_w
-    return x_c,y_c,z_c
-def Tc2w(x_c,y_c,z_c):
-    if bWindCoord:
-        x_w =  x_c * np.cos(theta_yaw) - z_c * np.sin(theta_yaw)
-        y_w =  y_c
-        z_w =  x_c * np.sin(theta_yaw) + z_c * np.cos(theta_yaw)
-    else:
-        x_w,y_w,z_w = x_c,y_c,z_c
-    return x_w, y_w, z_w
-
-
-
 # --- Flow field and speed
-zs = np.linspace(ZLIM[0]*1.12,ZLIM[1]*1.08,nx).astype(np.float32)
+
+ux0,uy0,uz0 = cylinder_tang_semi_inf_u(0,0,0,gamma_t,R,cartesianOut=True)
+print('uz0',uz0)
+
+zs = np.linspace(ZLIM[0]*1.08,ZLIM[1]*1.08,nx).astype(np.float32)
 xs = np.linspace(XLIM[0]*1.08,XLIM[1]*1.08,nx).astype(np.float32)
 [Z,X]=np.meshgrid(zs,xs)
 Y=X*0
-X_c, Y_c, Z_c = Tw2c(X, Y, Z)
+ux,uy,uz = cylinder_tang_semi_inf_u(X,Y,Z,gamma_t,R,cartesianOut=True)
+if bAddFlow:
+    uz=1+uz
 
-with Timer('VelocityField'):
-    ux_c,uy_c,uz_c,_,_,_,_=skewedcylinder_tang_semi_inf_u(X_c,Y_c,Z_c,gamma_t,R,m)
-    if bAddFlow:
-        uz_c=uz_c+U0*np.cos(theta_yaw) # Adding free wind
-        ux_c=ux_c+U0*np.sin(theta_yaw)
-ux,uy,uz = Tc2w(ux_c,uy_c,uz_c) 
 
 Speed=np.sqrt((uz**2+ux**2))
-#Speed=np.sqrt((uz**2))
 print('Speed range',np.min(Speed),np.max(Speed))
-Speed[Speed>CLIM[1]] = CLIM[1]
-Speed[Speed<CLIM[0]] = CLIM[0]
+Speed[Speed>CLIM[1]]=CLIM[1]
+Speed[Speed<CLIM[0]]=CLIM[0]
 
 COL=cmap((Speed-CLIM[0])/(CLIM[1]-CLIM[0])) # cmap requires value between 0 and 1
 COL=COL[:,:,0:3]
@@ -126,7 +79,6 @@ COL=COL[:,:,0:3]
 xr_c = np.linspace(-R,R,10)
 yr_c = 0*xr_c
 zr_c = 0*xr_c
-xr,yr,zr=Tc2w(xr_c,yr_c,zr_c)
 
 zu_c = np.linspace(0,ZLIM[1]*1.2,10) 
 yu_c = 0*zu_c
@@ -134,10 +86,7 @@ xu_c = m*zu_c+R
 zl_c = np.linspace(0,ZLIM[1]*1.2,10) 
 yl_c = 0*zl_c
 xl_c = m*zl_c-R
-xu,yu,zu=Tc2w(xu_c,yu_c,zu_c)
-xl,yl,zl=Tc2w(xl_c,yl_c,zl_c)
 
- 
 # fig=plt.figure()
 # ax=fig.add_subplot(111)
 # im=ax.contourf(Z,X,Speed,30)
@@ -198,19 +147,18 @@ def lic_step(fig,t,it=0,save=False):
         yseed=np.linspace(-0.88*R,0.88*R,7)
     start=np.array([yseed*0,yseed])
     sp=ax.streamplot(zs,xs,uz,ux,color='k',start_points=start.T,linewidth=0.7,density=30,arrowstyle='-')
-#     sp=ax.streamplot(zs,xs,uz,ux,color='k',linewidth=0.7,density=1)
     # qv=streamQuiver(ax,sp,spacing=0.8,scale=40,angles='xy')
     qv=streamQuiver(ax,sp,n=5,scale=40,angles='xy')
     # Surface
-    ax.plot(zr,xr,'k--')
-    ax.plot(zu,xu,'k--')
-    ax.plot(zl,xl,'k--')
+    ax.plot(zr_c,xr_c,'k--')
+    ax.plot(zu_c,xu_c,'k--')
+    ax.plot(zl_c,xl_c,'k--')
     ax.set_xlabel('z/R [-]')
     ax.set_ylabel('r/R [-]')
 
     if save:
         print('i={:04d} t={:.3f} '.format(it,t))
-        fig.savefig("_CylinderSkewedLIC\VCS-%04d.png"%it,dpi=dpi)
+        fig.savefig("_CylinderLIC\VC-%04d.png"%it,dpi=dpi)
     return kernel
 
 fig=plt.figure()
@@ -228,7 +176,7 @@ if movie:
     for it,t in enumerate(np.linspace(0,TMAX,nFrames)[:-1]):
         lic_step(fig,t,it,save=True)
 
-    os.system('ffmpeg.exe -r 30 -s 1920x1080 -i _CylinderSkewedLIC\VCS-%04d.png   -vcodec libx264 -crf 25 -pix_fmt yuv420p -y '+moviename)
+    os.system('ffmpeg.exe -r 30 -s 1920x1080 -i _CylinderLIC\VC-%04d.png   -vcodec libx264 -crf 25 -pix_fmt yuv420p -y '+moviename)
 
 
 # fig=plt.figure()

@@ -20,7 +20,6 @@ from __future__ import print_function
 # --- General
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
 # --- Local
 from vortexcylinder.VortexCylinderSkewed import skewedcylinder_tang_semi_inf_u
@@ -179,7 +178,6 @@ plt.show()
 
 
 # Colorbar
-# divider = make_axes_locatable(ax)
 # cax = divider.append_axes("right", size="5%", pad=0.20)
 # manual_colorbar(fig,cmap,cax=cax)
 # Streamlines
