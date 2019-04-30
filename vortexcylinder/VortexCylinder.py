@@ -151,6 +151,59 @@ def cylinders_tang_semi_inf_u(Xcp,Ycp,Zcp,gamma_t,R,Xcyl,Ycyl,Zcyl,epsilon=0):
     return ux,uy,uz
     
 
+def cylinder_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,z1=-2,z2=2,cartesianOut=False,epsilon=0):
+    """ Induced velocity from a finite cylinder extending along the z axis, extending between z1 and z2
+    INPUTS:
+      Xcp,Ycp,Zcp: vector or matrix of control points coordinates
+      gamma_t: tangential vorticity sheet strength of the cylinder
+      R: cylinder radius
+      z1,z2: extent of the cylinder
+      epsilon : Regularization parameter, e.g. epsilon=0.0001*R
+    Reference: [1]"""
+    EPSILON_AXIS=1e-7; # relative threshold for using axis formula
+
+    # --- Main corpus
+    Xcp=np.asarray(Xcp)
+    Ycp=np.asarray(Ycp)
+    Zcp=np.asarray(Zcp)
+    if Xcp.shape==(0,):
+        if CartesianOut:
+            return np.array([]),np.array([]),np.array([]),
+        else:
+            return np.array([]), np.array([])
+
+    r = np.sqrt(Xcp ** 2 + Ycp ** 2)
+    ur = np.full(r.shape,np.nan)
+    uz = np.full(r.shape,np.nan)
+    ## Vectorialization
+    zz1 = Zcp - z1
+    zz2 = Zcp - z2
+    
+    # Eliptic integrals
+    k1_2 = 4 * r * R / ((R + r) ** 2 + zz1 ** 2)
+    k2_2 = 4 * r * R / ((R + r) ** 2 + zz2 ** 2)
+    k1 = np.sqrt(k1_2)
+    k2 = np.sqrt(k2_2)
+    k0_2 = 4 * r * R / ((R + r) ** 2)
+
+    EE1 = ellipe(k1_2)
+    KK1 = ellipk(k1_2)
+    EE2 = ellipe(k2_2)
+    KK2 = ellipk(k2_2)
+    PI1 = ellipticPiCarlson(k0_2,k1_2)
+    PI2 = ellipticPiCarlson(k0_2,k2_2)
+    # ur
+    ur = np.multiply(gamma_t / (2 * np.pi) * np.sqrt(R / r),((np.multiply((2 - k2_2) / k2,KK2) - np.multiply(2.0 / k2,EE2)) - (np.multiply((2 - k1_2) / k1,KK1) - np.multiply(2.0 / k1,EE1))))
+    # uz
+    uz = np.multiply(- gamma_t / (4 * np.pi * np.sqrt(r * R)),((np.multiply(np.multiply(zz2,k2),(KK2 + np.multiply((R - r) / (R + r),PI2)))) - (np.multiply(np.multiply(zz1,k1),(KK1 + np.multiply((R - r) / (R + r),PI1))))))
+    if not cartesianOut:
+        return ur,uz
+    else:
+        psi = np.arctan2(Ycp,Xcp)     ;
+        ux=ur*np.cos(psi)
+        uy=ur*np.sin(psi)
+        return ux,uy,uz
+
 
 
 

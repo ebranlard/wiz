@@ -13,7 +13,7 @@ import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
 # --- Local
-from vortexcylinder.VortexCylinder import cylinder_tang_semi_inf_u
+from vortexcylinder.VortexCylinder import cylinder_tang_u
 try:
     from pybra.colors import darkrainbow as cmap
     from pybra.colors import darkrainbow, adjust_color_lightness, manual_colorbar
@@ -23,18 +23,15 @@ except:
     raise Exception('This script requires the package `pybra` from https://github.com/ebranlard/pybra/')
 
 # --- Parameters
-bAddFlow=True
 R=1
+z1=-2*R
+z2=2*R
 XLIM=[-3*R,3*R] # 
-ZLIM=[-3*R,3*R] # 
-if bAddFlow:
-    CLIM=[0.3,1.1]
-    gamma_t=-2/3
-else:
-    CLIM=[0.0,1.1]
-    gamma_t=-1
-nx = 600    # Number of points for velocity evaluation
-nz = nx 
+ZLIM=[-5*R,5*R] # 
+CLIM=[0.0,1]
+gamma_t=-1
+nx = 300    # Number of points for velocity evaluation
+nz = 501
 
 # LIC params
 nLICKernel=31
@@ -54,16 +51,14 @@ nFrames=220
 
 # --- Flow field and speed
 
-ux0,uy0,uz0 = cylinder_tang_semi_inf_u(0,0,0,gamma_t,R,cartesianOut=True)
+ux0,uy0,uz0 = cylinder_tang_u(0,0,0,gamma_t,R,cartesianOut=True)
 print('uz0',uz0)
 
-zs = np.linspace(ZLIM[0]*1.08,ZLIM[1]*1.08,nx).astype(np.float32)
-xs = np.linspace(XLIM[0]*1.08,XLIM[1]*1.08,nx).astype(np.float32)
+zs = np.linspace(ZLIM[0]*1.08,ZLIM[1]*1.11,nz).astype(np.float32)
+xs = np.linspace(XLIM[0]*1.08,XLIM[1]*1.11,nx).astype(np.float32)
 [Z,X]=np.meshgrid(zs,xs)
 Y=X*0
-ux,uy,uz = cylinder_tang_semi_inf_u(X,Y,Z,gamma_t,R,cartesianOut=True)
-if bAddFlow:
-    uz=1+uz
+ux,uy,uz = cylinder_tang_u(X,Y,Z,gamma_t,R,z1=z1,z2=z2,cartesianOut=True)
 
 
 Speed=np.sqrt((uz**2+ux**2))
@@ -76,20 +71,14 @@ COL=COL[:,:,0:3]
 
 
 # --- Surface and rotor
-xr_c = np.linspace(-R,R,10)
+xr_c = np.array([-R, R , R , -R ,-R])
+zr_c = np.array([z1, z1, z2,  z2, z1])
 yr_c = 0*xr_c
-zr_c = 0*xr_c
-
-zu_c = np.linspace(0,ZLIM[1]*1.2,10) 
-yu_c = 0*zu_c
-xu_c = 0*zu_c+R
-zl_c = np.linspace(0,ZLIM[1]*1.2,10) 
-yl_c = 0*zl_c
-xl_c = 0*zl_c-R
 
 # fig=plt.figure()
 # ax=fig.add_subplot(111)
 # im=ax.contourf(Z,X,Speed,30)
+# fig.colorbar(im)
 # plt.show()
 # 
 # fig=plt.figure()
@@ -100,7 +89,7 @@ xl_c = 0*zl_c-R
 
 # --- Inputs for LIC
 n = nLICKernel
-texture = np.random.rand(nz,nz).astype(np.float32)
+texture = np.random.rand(nz,nx).astype(np.float32)
 BaseKernel = np.sin(np.arange(n)*np.pi/n)
 
 def lic_step(fig,t,it=0,save=False):
@@ -141,24 +130,19 @@ def lic_step(fig,t,it=0,save=False):
     cax = divider.append_axes("right", size="5%", pad=0.20)
     manual_colorbar(fig,cmap,cax=cax, norm=mcolors.Normalize(vmin=CLIM[0], vmax=CLIM[1]))
     # Streamlines
-    if bAddFlow:
-        yseed=np.linspace(XLIM[0]*0.9,XLIM[1]*0.9,17)
-    else:
-        yseed=np.linspace(-0.88*R,0.88*R,7)
+    yseed=np.concatenate(( np.linspace(XLIM[0]*0.9,-R*1.3,3),np.linspace(-R*0.5,R*0.5,5), np.linspace(R*1.3,XLIM[1]*0.9,3)))
     start=np.array([yseed*0,yseed])
     sp=ax.streamplot(zs,xs,uz,ux,color='k',start_points=start.T,linewidth=0.7,density=30,arrowstyle='-')
     # qv=streamQuiver(ax,sp,spacing=0.8,scale=40,angles='xy')
-    qv=streamQuiver(ax,sp,n=5,scale=40,angles='xy')
+    qv=streamQuiver(ax,sp,n=[3,3,3,5,5,5,5,5,3,3,3],scale=40,angles='xy')
     # Surface
     ax.plot(zr_c,xr_c,'k--')
-    ax.plot(zu_c,xu_c,'k--')
-    ax.plot(zl_c,xl_c,'k--')
     ax.set_xlabel('z/R [-]')
     ax.set_ylabel('r/R [-]')
 
     if save:
         print('i={:04d} t={:.3f} '.format(it,t))
-        fig.savefig("_CylinderLIC\VC-%04d.png"%it,dpi=dpi)
+        fig.savefig("_CylinderFiniteLIC\VCF-%04d.png"%it,dpi=dpi)
     return kernel
 
 fig=plt.figure()
@@ -176,7 +160,7 @@ if movie:
     for it,t in enumerate(np.linspace(0,TMAX,nFrames)[:-1]):
         lic_step(fig,t,it,save=True)
 
-    os.system('ffmpeg.exe -r 30 -s 1920x1080 -i _CylinderLIC\VC-%04d.png   -vcodec libx264 -crf 25 -pix_fmt yuv420p -y '+moviename)
+    os.system('ffmpeg.exe -r 30 -s 1920x1080 -i _CylinderFiniteLIC\VCF-%04d.png   -vcodec libx264 -crf 25 -pix_fmt yuv420p -y '+moviename)
 
 
 # fig=plt.figure()
