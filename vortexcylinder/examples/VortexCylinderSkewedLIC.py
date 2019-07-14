@@ -24,7 +24,7 @@ import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
 # --- Local
-from vortexcylinder.VortexCylinderSkewed import skewedcylinder_tang_semi_inf_u
+from vortexcylinder.VortexCylinderSkewed import svc_tang_u
 from vortexcylinder.VortexRing import ring_u
 try:
     from pybra.colors import darkrainbow as cmap
@@ -106,7 +106,7 @@ Y=X*0
 X_c, Y_c, Z_c = Tw2c(X, Y, Z)
 
 with Timer('VelocityField'):
-    ux_c,uy_c,uz_c,_,_,_,_=skewedcylinder_tang_semi_inf_u(X_c,Y_c,Z_c,gamma_t,R,m)
+    ux_c,uy_c,uz_c,_,_=svc_tang_u(X_c,Y_c,Z_c,gamma_t,R,m)
     if bAddFlow:
         uz_c=uz_c+U0*np.cos(theta_yaw) # Adding free wind
         ux_c=ux_c+U0*np.sin(theta_yaw)

@@ -113,7 +113,7 @@ def main(test=False):
         plt.close('all')
 
 class Test(unittest.TestCase):
-    def test_main(self):
+    def test_Article_Induction_NonYaw(self):
         import sys
         if sys.version_info >= (3, 0):
             main(test=True)

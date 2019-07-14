@@ -157,10 +157,10 @@ def ellipticPiCarlson(n,m):
     return PI
     
 class TestElliptic(unittest.TestCase):
-    def test_behavior(self):
+    def test_Elliptic_behavior(self):
         self.assertEqual(len(ellipticPiCarlson([],[])),0)
 
-    def test_points(self):
+    def test_Elliptic_points(self):
         # Example points as given in book: Branlard - Wind Turbine Aerodynamics, p.626
         np.testing.assert_almost_equal(ellipticPiCarlson(0.5 ,0.6 ),2.86752, decimal=5)
         np.testing.assert_almost_equal(ellipticPiCarlson(-0.5,-0.6),1.15001, decimal=5)
@@ -169,7 +169,7 @@ class TestElliptic(unittest.TestCase):
         np.testing.assert_almost_equal(ellipticPiCarlson(-3,0),np.pi/(2*np.sqrt(4)), decimal=9)
         # ellippi(3,0)= pi/(2*sqrt(-2)) = (0.0 - 1.11072073453959156175397j)
 
-    def test_limits(self):
+    def test_Elliptic_limits(self):
         # TODO
         try:
             np.testing.assert_almost_equal(ellipticPiCarlson(np.inf,2),0.0, decimal=5)
@@ -185,7 +185,7 @@ class TestElliptic(unittest.TestCase):
         except:
             pass
 # 
-    def test_mpmath(self):
+    def test_Elliptic_mpmath(self):
         # --- Compare results with mpmath function
         from itertools import product
         try:
@@ -202,7 +202,7 @@ class TestElliptic(unittest.TestCase):
             PI_M[i] = ellippi(n,m)
         np.testing.assert_almost_equal(PI_C,PI_M, decimal=7)
 
-    def test_property(self):
+    def test_Elliptic_property(self):
         # Useful vector, m \in ]-infty,0[ U ]0,1[
         nn=6
         m=np.concatenate((-np.linspace(10**-6, 10**6,nn),np.linspace(10**-6, 1-10**-6,nn)))

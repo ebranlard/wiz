@@ -183,7 +183,7 @@ def main(test=False):
     ground_effect(test)
 
 class Test(unittest.TestCase):
-    def test_main(self):
+    def test_Article_WindFarm_Ground(self):
         import sys
         if sys.version_info >= (3, 0):
             main(test=True)

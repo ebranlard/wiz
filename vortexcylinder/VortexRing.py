@@ -14,15 +14,16 @@ from scipy.special import ellipk, ellipe
 # warnings.filterwarnings('error')
 
 def ring_u(Xcp,Ycp,Zcp,Gamma=-1,R=1,cartesianOut=False,epsilon=0):
-
+    """ 
+    Compute the induced velocity from a vortex ring located at z=0
+    """
     EPSILON = 1e-07
-
     # --- Main corpus
     Xcp=np.asarray(Xcp)
     Ycp=np.asarray(Ycp)
     Zcp=np.asarray(Zcp)
     if Xcp.shape==(0,):
-        if CartesianOut:
+        if cartesianOut:
             return np.array([]),np.array([]),np.array([]),
         else:
             return np.array([]), np.array([])
@@ -71,6 +72,44 @@ def ring_u(Xcp,Ycp,Zcp,Gamma=-1,R=1,cartesianOut=False,epsilon=0):
         ux=ur*np.cos(psi)
         uy=ur*np.sin(psi)
         return ux,uy,uz
+
+def rings_u(Xcp,Ycp,Zcp,Gamma_r,Rr,Xr,Yr,Zr,cartesianOut=False,epsilon=0):
+    """ 
+    Compute the induced velocity from nRings vortex rings
+        nRings: number of main rings
+    TODO: angles
+
+    INPUTS: 
+        Xcp,Ycp,Zcp: cartesian coordinates of control points where the velocity field is not be computed
+        Gamma_t : array of size (nRings), intensity of each rings
+        R       : array of size (nRings), radius of each rings
+        Xr,Yr,Zr: arrays of size (nRings), center of each rings
+    """
+    Xcp=np.asarray(Xcp)
+    Ycp=np.asarray(Ycp)
+    Zcp=np.asarray(Zcp)
+    if cartesianOut:
+        ux = np.zeros(Xcp.shape)
+        uy = np.zeros(Xcp.shape)
+        uz = np.zeros(Xcp.shape)
+    else:
+        ur = np.zeros(Xcp.shape)
+        uz = np.zeros(Xcp.shape)
+    for ir,(Gamma,R,xr,yr,zr) in enumerate(zip(Gamma_r,Rr,Xr,Yr,Zr)):
+        if np.abs(Gamma) > 0:
+            #print('.',end='')
+            u1 = ring_u(Xcp-xr,Ycp-yr,Zcp-zr,Gamma,R,cartesianOut=cartesianOut,epsilon=epsilon)
+            if cartesianOut:
+                ux = ux + u1[0]
+                uy = uy + u1[1]
+                uz = uz + u1[2]
+            else:
+                ur = ur + u1[0]
+                uz = uz + u1[1]
+    if cartesianOut:
+        return ux,uy,uz
+    else:
+        return ur,uz
 
 # --------------------------------------------------------------------------------}
 # --- TEST 

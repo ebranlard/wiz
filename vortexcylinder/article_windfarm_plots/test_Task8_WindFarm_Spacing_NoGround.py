@@ -169,7 +169,7 @@ def main(test=False):
     layout(test)
 
 class Test(unittest.TestCase):
-    def test_main(self):
+    def test_Article_WindFarm_NoGround(self):
         import sys
         if sys.version_info >= (3, 0):
             main(test=True)

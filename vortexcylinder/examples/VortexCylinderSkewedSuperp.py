@@ -23,8 +23,7 @@ import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
 # --- Local
-from vortexcylinder.VortexCylinderSkewed import skewedcylinder_tang_semi_inf_u
-from vortexcylinder.VortexCylinderSkewed import skewedcylinders_tang_semi_inf_u
+from vortexcylinder.VortexCylinderSkewed import svcs_tang_u
 from vortexcylinder.VortexRing import ring_u
 try:
     from pybra.colors import darkrainbow as cmap
@@ -82,7 +81,7 @@ gamma_tip0=np.trapz(dgt_hub,rh)
 # plt.show()
 
 
-nCyl = 1
+nCyl = 1 # Number of wind turbines
 Xcyl=np.zeros(nCyl)
 Ycyl=np.zeros(nCyl)
 Zcyl=np.zeros(nCyl)
@@ -98,10 +97,10 @@ elif n_radial==2:
 else:
     Gamma         = -gamma_t * np.interp(vR[0,:],r0,g0) *0.3
     vgamma_t[0,:] = -gamma_t * np.interp(vR[0,:],r0,dg0)*0.1 # TODO figure out the scalling
-    plt.plot(vR[0,:],Gamma        ,label='Gamma')
-    plt.plot(vR[0,:],vgamma_t[0,:],label='dGamma')
-    plt.legend()
-    plt.show()
+    #plt.plot(vR[0,:],Gamma        ,label='Gamma')
+    #plt.plot(vR[0,:],vgamma_t[0,:],label='dGamma')
+    #plt.legend()
+    #plt.show()
 
 def Tw2c(x_w,y_w,z_w):
     if bWindCoord:
@@ -122,7 +121,7 @@ def Tc2w(x_c,y_c,z_c):
 
 
 # --- Loop on diameters
-for nD in [0,8]:
+for nD in [0,4]:
     z0_w      = nD*2*R #Plane
     # --- Flow field and speed
     x_w = np.linspace(LIM[0],LIM[1],nx)
@@ -131,16 +130,19 @@ for nD in [0,8]:
     Z_w=X_w*0+z0_w
     X_c,Y_c,Z_c = Tw2c(X_w,Y_w,Z_w) 
 
-    ux_c,uy_c,uz_c  = skewedcylinders_tang_semi_inf_u(X_c,Y_c,Z_c,vgamma_t,vR,vM,Xcyl,Ycyl,Zcyl)
+    ux_c,uy_c,uz_c  = svcs_tang_u(X_c,Y_c,Z_c,vgamma_t,vR,vM,Xcyl,Ycyl,Zcyl)
     uz_c=uz_c+U0*np.cos(theta_yaw) # Adding free wind
     ux_c=ux_c+U0*np.sin(theta_yaw)
     ux,uy,uz = Tc2w(ux_c,uy_c,uz_c)
 
-    def plot(ux,uy,uz,label=''):
+    def plot(ux,uy,uz,label='',clim=None):
         Speed=np.sqrt(uz**2)
         # Temporary HACK until singularity is removed
-        Speed[Speed>CLIM[1]] = CLIM[1]
-        Speed[Speed<CLIM[0]] = CLIM[0]
+        print('Min Max: ',np.min(Speed.ravel()),np.max(Speed.ravel()))
+        if clim is not None:
+            Speed[Speed>clim[1]] = clim[1]
+            Speed[Speed<clim[0]] = clim[0]
+        print('Min Max: ',np.min(Speed.ravel()),np.max(Speed.ravel()))
 
         # rotor projection
         vpsi=np.linspace(0,2*np.pi,50)
@@ -150,10 +152,15 @@ for nD in [0,8]:
         dpi=300
         fig=plt.figure()
         ax=fig.add_subplot(111)
-        im=ax.contourf(X_w,Y_w,Speed,30,cmap=cmap)
+        if clim is not None:
+            lev=np.linspace(clim[0],clim[1],30)
+        else:
+            lev=30
+        im=ax.contourf(X_w,Y_w,Speed,levels=lev,cmap=cmap)
         ax.plot(xc_w,yc_w,'k--')
         cb=fig.colorbar(im)
-        cb.set_clim(CLIM)
+        if clim is not None:
+            cb.set_clim(CLIM)
         sp=ax.streamplot(x_w,y_w,ux,uy,color='k',linewidth=0.7,density=2)
 
         ax.set_xlim(LIM)
@@ -163,26 +170,7 @@ for nD in [0,8]:
         ax.set_title('z = {}D{}'.format(int(z0_w/(2*R)),label))
         fig.savefig("VC_superp_yaw{:02d}_CT{:03d}_{:d}D{}.png".format(int(np.round(theta_yaw*180/np.pi)),int(CT*100),int(z0_w/(2*R)),label),dpi=dpi)
 
-
-    plot(ux  ,uy  ,uz  ,' cylinder')
-#     plot(ux_r,uy_r,uz_r,' rings'   )
+    plot(ux  ,uy  ,uz  ,' cylinders',clim=CLIM)
 
 plt.show()
-
-
-# Colorbar
-# divider = make_axes_locatable(ax)
-# cax = divider.append_axes("right", size="5%", pad=0.20)
-# Streamlines
-# yseed=np.linspace(-0.88,0.88,7)
-# start=np.array([yseed*0,yseed])
-# sp=ax.streamplot(x_w,y_w,ux,uy,color='k',linewidth=0.7,density=1)
-# # sp=ax.streamplot(x_w,y_w,ux,uy,color='k',start_points=start.T,linewidth=0.7,density=30,arrowstyle='-')
-# # qv=streamQuiver(ax,sp,spacing=0.8,scale=40,angles='xy')
-# ax.set_xlabel('x/R [-]')
-# ax.set_ylabel('y/R [-]')
-# 
-
-# plt.show()
-
 

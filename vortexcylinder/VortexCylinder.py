@@ -37,7 +37,7 @@ def cylinder_tang_semi_inf_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,cartesianOut=False,epsil
     Ycp=np.asarray(Ycp)
     Zcp=np.asarray(Zcp)
     if Xcp.shape==(0,):
-        if CartesianOut:
+        if cartesianOut:
             return np.array([]),np.array([]),np.array([]),
         else:
             return np.array([]), np.array([])
@@ -167,7 +167,7 @@ def cylinder_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,z1=-2,z2=2,cartesianOut=False,eps
     Ycp=np.asarray(Ycp)
     Zcp=np.asarray(Zcp)
     if Xcp.shape==(0,):
-        if CartesianOut:
+        if cartesianOut:
             return np.array([]),np.array([]),np.array([]),
         else:
             return np.array([]), np.array([])
@@ -215,7 +215,7 @@ def cylinder_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,z1=-2,z2=2,cartesianOut=False,eps
 # --- TEST 
 # --------------------------------------------------------------------------------{
 class TestCylinder(unittest.TestCase):
-    def test_singularities(self):
+    def test_VC_singularities(self):
         import warnings
         warnings.filterwarnings('error')
         # ---- r=1, z=0
@@ -236,7 +236,7 @@ class TestCylinder(unittest.TestCase):
         np.testing.assert_almost_equal(uz,uze)
         np.testing.assert_almost_equal(ur,ure)
 
-    def test_regularization(self):
+    def test_VC_regularization(self):
         # TODO!
         r=np.array([0,0.99,1,1.01])
         # --- Regularization should have no impact when z<<-epsilon
@@ -266,7 +266,7 @@ class TestCylinder(unittest.TestCase):
 # #         plt.ylabel('ur') 
 #         plt.show()
 
-    def test_multirotor(self):
+    def test_VC_multirotor(self):
         import warnings
         warnings.filterwarnings('error')
         # --- Typical values used
@@ -359,7 +359,7 @@ class TestCylinder(unittest.TestCase):
 
 
 
-    def test_axis(self):
+    def test_VC_axis(self):
         # Test that cylinder gives axis formula, eq 36.72 in reference [2]
         gamma_t, R= -1, 10
         z=np.linspace(-2*R,2*R,20)
@@ -376,7 +376,7 @@ class TestCylinder(unittest.TestCase):
         #plt.plot(z,ur)
         #plt.show()
 
-    def test_axis_approx(self):
+    def test_VC_axis_approx(self):
         # Test the approximate axis formula, close to axis, eq 36.72 in reference [2]
         gamma_t, R= -1, 10
         z=np.linspace(-2*R,2*R,21)
@@ -395,7 +395,7 @@ class TestCylinder(unittest.TestCase):
         #plt.plot(z,uz,'--')
         #plt.show()
 
-    def test_rotor(self):
+    def test_VC_rotor(self):
         # Test that induction on the rotor is constant, equal to gamma/2, see [1]
         gamma_t, R= -1, 10
         eps=10**-6 *R
@@ -406,7 +406,7 @@ class TestCylinder(unittest.TestCase):
         uz_ref=[gamma_t/2]*len(x)
         np.testing.assert_almost_equal(uz,uz_ref,decimal=7)
 
-    def test_farwake(self):
+    def test_VC_farwake(self):
         # Test that induction in the far wake is constant, equal to gamma, see [1]
         gamma_t, R= -1, 10
         eps=10**-5 *R
@@ -418,29 +418,56 @@ class TestCylinder(unittest.TestCase):
         np.testing.assert_almost_equal(uz,uz_ref,decimal=5)
         np.testing.assert_almost_equal(ur,ur_ref,decimal=7)
 
-    def test_rings(self):
-        pass
-        #TODO
+    def test_VC_rings(self):
+        # Test that induction is close to the one obtained from a series of rings
         try:
-            from .VortexRing import ring_u
+            from .VortexRing import rings_u
         except:
             try:
-                from vortexcylinder.VortexRing import ring_u
+                from vortexcylinder.VortexRing import rings_u
             except:
-                from VortexRing import ring_u
+                from VortexRing import rings_u
 
-        # Test that induction on the rotor is similat to the one from a bunch of rings
+        # Parameters
         gamma_t, R= -1, 10
         eps=10**-6 *R
-        x=np.linspace(-(R-eps), R-eps, 10)
+        # Parameters for rings
+        nRings      = 1000
+        z_max       = 20*2*R
+        Zr          = np.linspace(0,z_max,nRings)
+        dz          = Zr[1]-Zr[0]
+        vGamma_r    = Zr*0 + gamma_t*dz
+        vR_r        = Zr*0 + R
+        Xr          = 0*Zr
+        Yr          = 0*Zr
+
+        def compare(x,y,z,dec):
+            ur,uz      = cylinder_tang_semi_inf_u(x,y,z,gamma_t,R)
+            ur_r, uz_r = rings_u(x,y,z,vGamma_r,vR_r,Xr,Yr,Zr)
+            np.testing.assert_almost_equal(uz,uz_r,decimal=dec)
+            np.testing.assert_almost_equal(ur,ur_r,decimal=dec)
+            return ur,uz,ur_r,uz_r
+        # --- test on rotor
+        x=np.linspace(0,2*R,20)
+        x=x[np.abs(x-R)>0.07*R]
         y=x*0
         z=x*0
-        ur,uz=cylinder_tang_semi_inf_u(x,y,z,gamma_t,R)
-        #         uz_ref=[gamma_t/2]*len(x)
-        #         np.testing.assert_almost_equal(uz,uz_ref,decimal=7)
-        #print(ur)
-        #print(uz)
+        ur,uz,ur_r,uz_r=compare(x,y,z,1)
+        # --- test at -R downstream
+        z=x*0-R
+        ur,uz,ur_r,uz_r=compare(x,y,z,2)
+        # --- test at +R upstream
+        z=x*0+R
+        ur,uz,ur_r,uz_r=compare(x,y,z,2)
 
+        #import matplotlib.pyplot as plt
+        #plt.figure()
+        #plt.plot(x,ur)
+        #plt.plot(x,ur_r)
+        #plt.figure()
+        #plt.plot(x,uz)
+        #plt.plot(x,uz_r)
+        #plt.show()
 
 if __name__ == "__main__":
 #     TestCylinder().test_singularities()
