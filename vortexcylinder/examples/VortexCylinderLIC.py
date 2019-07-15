@@ -54,14 +54,14 @@ nFrames=220
 
 # --- Flow field and speed
 
-ux0,uy0,uz0 = cylinder_tang_semi_inf_u(0,0,0,gamma_t,R,cartesianOut=True)
+ux0,uy0,uz0 = cylinder_tang_semi_inf_u(0,0,0,gamma_t,R,polar_out=False)
 print('uz0',uz0)
 
 zs = np.linspace(ZLIM[0]*1.08,ZLIM[1]*1.08,nx).astype(np.float32)
 xs = np.linspace(XLIM[0]*1.08,XLIM[1]*1.08,nx).astype(np.float32)
 [Z,X]=np.meshgrid(zs,xs)
 Y=X*0
-ux,uy,uz = cylinder_tang_semi_inf_u(X,Y,Z,gamma_t,R,cartesianOut=True)
+ux,uy,uz = cylinder_tang_semi_inf_u(X,Y,Z,gamma_t,R,polar_out=False)
 if bAddFlow:
     uz=1+uz
 

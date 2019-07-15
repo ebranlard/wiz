@@ -31,12 +31,19 @@ def skew_components(u_x,u_z,m):
     u_zeta = u_z * coschi + u_x * sinchi
     u_xi = - u_z * sinchi + u_x * coschi
     return u_zeta,u_xi
+def polar_components(u_x,u_y,vpsi):
+    u_r  =  np.multiply(u_x,np.cos(vpsi)) + np.multiply(u_y,np.sin(vpsi))
+    u_psi= -np.multiply(u_x,np.sin(vpsi)) + np.multiply(u_y,np.cos(vpsi))
+    return u_r,u_psi
+
 # --------------------------------------------------------------------------------}
-# --- Raw/core functions, polar coordinates
+# --- Core functions, polar coordinates inputs
 # --------------------------------------------------------------------------------{
-def svc_tang_u_polar(vr,vpsi,vz,gamma_t=-1,R=1,m=0,ntheta=180):
+def svc_tang_u_polar(vr,vpsi,vz,gamma_t=-1,R=1,m=0,ntheta=180,polar_out=False):
     """ Induced velocity from a skewed semi infinite cylinder of tangential vorticity.
+    Takes polar coordinates as inputs, returns velocity either in Cartesian (default) or polar.
     The cylinder axis is defined by x=m.z, m=tan(chi). The rotor is in the plane z=0.
+    The algorithm loops over the control points and performs the integration over theta
     INPUTS:
        vr,vpsi,vz : flat list of control points in polar coordinates
        gamma_t    : tangential vorticity of the vortex sheet (circulation per unit of length oriented along psi). (for WT rotating positively along psi , gamma psi is negative)
@@ -45,7 +52,6 @@ def svc_tang_u_polar(vr,vpsi,vz,gamma_t=-1,R=1,m=0,ntheta=180):
        ntheta    : number of points used for integration
     Reference: [1,2]"""
     EPSILON_AXIS=1e-7; # relative threshold for using axis formula
-    # --- Performing integration over theta for all control points
     vtheta = np.pi/2 + np.linspace(0, 2*np.pi, ntheta)
     # Flattening
     shape_in=vr.shape
@@ -53,51 +59,57 @@ def svc_tang_u_polar(vr,vpsi,vz,gamma_t=-1,R=1,m=0,ntheta=180):
     vpsi = np.asarray(vpsi).ravel()
     vz   = np.asarray(vz).ravel()
     # Constants of theta
-    c  = 1 + m**2
-    bx = - R * np.cos(vtheta)
-    by = - R * np.sin(vtheta)
-    bz =   R * m * np.cos(vtheta)
-    u_z   = np.zeros(vr.shape)
-    u_x   = np.zeros(vr.shape)
-    u_y   = np.zeros(vr.shape)
-    u_psi = np.zeros(vr.shape)
-    # ---- Loop on all control points to find velocity
-    for i,(r,psi,z) in enumerate(zip(vr,vpsi,vz)):
-        # Functions of theta in the integrand
-        a = R**2 + r** 2 + z**2 - 2*R*r*np.cos(vtheta - psi)
-        b = 2 * m * R * np.cos(vtheta) - 2 * m * r * np.cos(psi) - 2 * z
-        ax = R * z * np.cos(vtheta)
-        ay = R * z * np.sin(vtheta)
-        az = R * (R - r * np.cos(vtheta - psi))
-        ap = R * z * np.sin(vtheta - psi)
-        bp = -   R * np.sin(vtheta - psi)
-        # Integrand
-        dI_x   = 2 *(ax * np.sqrt(c)+ np.multiply(bx,np.sqrt(a)))/(np.multiply(np.sqrt(a),(2 * np.sqrt(a * c)+ b)))
-        dI_y   = 2 *(ay * np.sqrt(c)+ np.multiply(by,np.sqrt(a)))/(np.multiply(np.sqrt(a),(2 * np.sqrt(a * c)+ b)))
-        dI_z   = 2 *(az * np.sqrt(c)+ np.multiply(bz,np.sqrt(a)))/(np.multiply(np.sqrt(a),(2 * np.sqrt(a * c)+ b)))
-        dI_psi = 2 *(ap * np.sqrt(c)+ np.multiply(bp,np.sqrt(a)))/(np.multiply(np.sqrt(a),(2 * np.sqrt(a * c)+ b)))
-        # Integrations
-        u_x[i]    = gamma_t/(4*np.pi) * np.trapz(dI_x  , vtheta)
-        u_y[i]    = gamma_t/(4*np.pi) * np.trapz(dI_y  , vtheta)
-        u_z[i]    = gamma_t/(4*np.pi) * np.trapz(dI_z  , vtheta)
-        u_psi[i]  = gamma_t/(4*np.pi) * np.trapz(dI_psi, vtheta)
-    
-    # Reshaping to desired shape
-    u_z   =  u_z.reshape(shape_in)   
-    u_x   =  u_x.reshape(shape_in)   
-    u_y   =  u_y.reshape(shape_in)   
-    u_psi =  u_psi.reshape(shape_in) 
-    vpsi  =  vpsi.reshape(shape_in) 
-    # Projections onto r, zeta, xi
-    u_r = np.multiply(u_x,np.cos(vpsi)) + np.multiply(u_y,np.sin(vpsi))
-    coschi = 1/np.sqrt(1+m**2)
-    sinchi = m/np.sqrt(1+m**2)
-    return u_x,u_y,u_z,u_r,u_psi
+    c   = 1 + m**2
+    bz  = R * m * np.cos(vtheta)
+    u_z = np.zeros(vr.shape)
+    if polar_out:
+        u_r   = np.zeros(vr.shape)
+        u_psi = np.zeros(vr.shape)
+        # ---- Loop on all control points to find velocity
+        for i,(r,psi,z) in enumerate(zip(vr,vpsi,vz)):
+            # Functions of theta in the integrand
+            a = R**2 + r** 2 + z**2 - 2*R*r*np.cos(vtheta - psi)
+            b = 2 * m * R * np.cos(vtheta) - 2 * m * r * np.cos(psi) - 2 * z
+            ap, bp = R * z * np.sin(vtheta - psi), -R * np.sin(vtheta - psi)
+            ar, br = R * z * np.cos(vtheta - psi), -R * np.cos(vtheta - psi)
+            az = R * (R - r * np.cos(vtheta - psi))
+            D = 2*gamma_t/(4*np.pi)/(np.multiply(np.sqrt(a),(2 * np.sqrt(a * c)+ b)))
+            # Integrations
+            u_r[i]    = np.trapz((ar * np.sqrt(c)+ np.multiply(br,np.sqrt(a)))*D, vtheta)
+            u_psi[i]  = np.trapz((ap * np.sqrt(c)+ np.multiply(bp,np.sqrt(a)))*D, vtheta)
+            u_z[i]    = np.trapz((az * np.sqrt(c)+ np.multiply(bz,np.sqrt(a)))*D, vtheta)
+        # Reshaping to desired shape
+        u_r   =  u_r.reshape(shape_in)   
+        u_psi =  u_psi.reshape(shape_in)   
+        u_z   =  u_z.reshape(shape_in)   
+        return u_r,u_psi,u_z
+    else:
+        bx, by = -R * np.cos(vtheta), -R * np.sin(vtheta)
+        u_x   = np.zeros(vr.shape)
+        u_y   = np.zeros(vr.shape)
+        # ---- Loop on all control points to find velocity
+        for i,(r,psi,z) in enumerate(zip(vr,vpsi,vz)):
+            # Functions of theta in the integrand
+            a = R**2 + r** 2 + z**2 - 2*R*r*np.cos(vtheta - psi)
+            b = 2 * m * R * np.cos(vtheta) - 2 * m * r * np.cos(psi) - 2 * z
+            ax, ay = R * z * np.cos(vtheta),  R * z * np.sin(vtheta)
+            az = R * (R - r * np.cos(vtheta - psi))
+            D = 2*gamma_t/(4*np.pi)/(np.multiply(np.sqrt(a),(2 * np.sqrt(a * c)+ b)))
+            # Integrations
+            u_x[i]    = np.trapz((ax * np.sqrt(c)+ np.multiply(bx,np.sqrt(a)))*D, vtheta)
+            u_y[i]    = np.trapz((ay * np.sqrt(c)+ np.multiply(by,np.sqrt(a)))*D, vtheta)
+            u_z[i]    = np.trapz((az * np.sqrt(c)+ np.multiply(bz,np.sqrt(a)))*D, vtheta)
+        # Reshaping to desired shape
+        u_x   =  u_x.reshape(shape_in)   
+        u_y   =  u_y.reshape(shape_in)   
+        u_z   =  u_z.reshape(shape_in)   
+        return u_x,u_y,u_z
 
 
-def svc_longi_u_polar(vr,vpsi,vz,gamma_l=-1,R=1,m=0,ntheta=180):
+def svc_longi_u_polar(vr,vpsi,vz,gamma_l=-1,R=1,m=0,ntheta=180,polar_out=False):
     """ Raw function, not intended to be exported. 
     Induced velocity from a skewed semi infinite cylinder of longitudinal vorticity.
+    Takes polar coordinates as inputs, returns velocity either in Cartesian (default) or polar.
     The cylinder axis is defined by x=m.z, m=tan(chi). The rotor is in the plane z=0.
     INPUTS:
        vr,vpsi,vz : control points in polar coordinates, may be of any shape
@@ -107,53 +119,48 @@ def svc_longi_u_polar(vr,vpsi,vz,gamma_l=-1,R=1,m=0,ntheta=180):
        ntheta    : number of points used for integration
     Reference: [1,2]"""
     EPSILON_AXIS=1e-7; # relative threshold for using axis formula
-    # Flattening
-    shape_in=vr.shape
-    vr   = np.asarray(vr).ravel()
-    vpsi = np.asarray(vpsi).ravel()
-    vz   = np.asarray(vz).ravel()
-    # Alloc
-    u_x = np.zeros(vr.shape)
-    u_y = np.zeros(vr.shape)
-    u_z = np.zeros(vr.shape)
-    u_psi = np.zeros(vr.shape)
-    u_r = np.zeros(vr.shape)
     vtheta = np.linspace(0,2 * np.pi,ntheta) + np.pi / ntheta
-    # Dimensionless (important)
-    vr=vr/R
-    vz=vz/R
-    for i,(r,psi,z) in enumerate(zip(vr,vpsi,vz)):
-        Den1 = np.sqrt(1 + r ** 2 + z ** 2 - 2 * r * np.cos(vtheta - psi))
-        Den2 = - z + m * np.cos(vtheta) + np.sqrt(1 + m ** 2) * np.sqrt(1 + r ** 2 + z ** 2 - 2 * r * np.cos(vtheta - psi)) - m * r * np.cos(psi)
-        DenInv = 1/np.multiply(Den1,Den2)
-        dv_x   =         (np.sin(vtheta) - r*np.sin(psi))     *DenInv
-        dv_y   = (- m*z - np.cos(vtheta) + r*np.cos(psi))     *DenInv
-        dv_psi = (r - m*z*np.cos(psi) - np.cos(vtheta-psi))   *DenInv
-        dv_r   = (  - m*z*np.sin(psi) + np.sin(vtheta-psi))   *DenInv
-        dv_z   = m * (-np.sin(vtheta) + r*np.sin(psi))        *DenInv
-        u_x[i]   = np.trapz(dv_x  ,vtheta)
-        u_y[i]   = np.trapz(dv_y  ,vtheta)
-        u_z[i]   = np.trapz(dv_z  ,vtheta)
-        u_psi[i] = np.trapz(dv_psi,vtheta)
-        u_r[i]   = np.trapz(dv_r  ,vtheta)
-    ## Normalization, pi factor and intensity
-    u_x   = u_x   * gamma_l/(4*np.pi)
-    u_y   = u_y   * gamma_l/(4*np.pi)
-    u_z   = u_z   * gamma_l/(4*np.pi)
-    u_psi = u_psi * gamma_l/(4*np.pi)
-    u_r   = u_r   * gamma_l/(4*np.pi)
-    # Reshaping to input shape
-    u_x   =  u_x.reshape(shape_in)   
-    u_y   =  u_y.reshape(shape_in)   
-    u_z   =  u_z.reshape(shape_in)   
-    u_psi =  u_psi.reshape(shape_in) 
-    u_r   =  u_psi.reshape(shape_in) 
-    # Projection onto wake coord
-    return (u_x,u_y,u_z,u_r,u_psi,u_psi)
+    # Flattening, and dimensionless!
+    shape_in=vr.shape
+    vr   = np.asarray(vr/R).ravel()
+    vpsi = np.asarray(vpsi).ravel()
+    vz   = np.asarray(vz/R).ravel()
+    u_z = np.zeros(vr.shape)
+    if polar_out:
+        u_r = np.zeros(vr.shape)
+        u_psi = np.zeros(vr.shape)
+        for i,(r,psi,z) in enumerate(zip(vr,vpsi,vz)):
+            Den1 = np.sqrt(1 + r**2 + z**2 - 2*r* np.cos(vtheta - psi))
+            Den2 = - z + m * np.cos(vtheta) + np.sqrt(1 + m ** 2) * np.sqrt(1 + r ** 2 + z ** 2 - 2 * r * np.cos(vtheta - psi)) - m * r * np.cos(psi)
+            DenInv = gamma_l/(4*np.pi)/np.multiply(Den1,Den2)
+            u_r[i]   = np.trapz((  - m*z*np.sin(psi) + np.sin(vtheta-psi))*DenInv,vtheta)
+            u_psi[i] = np.trapz((r - m*z*np.cos(psi) - np.cos(vtheta-psi))*DenInv,vtheta)
+            u_z[i]   = np.trapz(m * (-np.sin(vtheta) + r*np.sin(psi))     *DenInv,vtheta)
+        # Reshaping to input shape
+        u_r   =  u_psi.reshape(shape_in) 
+        u_psi =  u_psi.reshape(shape_in) 
+        u_z   =  u_z.reshape(shape_in)   
+        return (u_r,u_psi,u_z)
+    else:
+        u_x = np.zeros(vr.shape)
+        u_y = np.zeros(vr.shape)
+        for i,(r,psi,z) in enumerate(zip(vr,vpsi,vz)):
+            Den1 = np.sqrt(1 + r**2 + z**2 - 2*r* np.cos(vtheta - psi))
+            Den2 = - z + m * np.cos(vtheta) + np.sqrt(1 + m ** 2) * np.sqrt(1 + r ** 2 + z ** 2 - 2 * r * np.cos(vtheta - psi)) - m * r * np.cos(psi)
+            DenInv = gamma_l/(4*np.pi)/np.multiply(Den1,Den2)
+            u_x[i]   = np.trapz(        (np.sin(vtheta) - r*np.sin(psi))  *DenInv,vtheta)
+            u_y[i]   = np.trapz((- m*z - np.cos(vtheta) + r*np.cos(psi))  *DenInv,vtheta)
+            u_z[i]   = np.trapz(m * (-np.sin(vtheta) + r*np.sin(psi))     *DenInv,vtheta)
+        # Reshaping to input shape
+        u_x   =  u_x.reshape(shape_in)   
+        u_y   =  u_y.reshape(shape_in)   
+        u_z   =  u_z.reshape(shape_in)   
+        return (u_x,u_y,u_z)
 
-def svc_root_u_polar(vr,vpsi,vz,Gamma_r=-1,m=0):
+def svc_root_u_polar(vr,vpsi,vz,Gamma_r=-1,m=0,polar_out=False):
     """
     Induced velocity from a skewed root vortex
+    Takes polar coordinates as inputs, returns velocity either in Cartesian (default) or polar.
     The cylinder axis is defined by x=m.z, m=tan(chi). The rotor is in the plane z=0.
     INPUTS:
        vr,vpsi,vz : control points in polar coordinates, may be of any shape
@@ -162,35 +169,31 @@ def svc_root_u_polar(vr,vpsi,vz,Gamma_r=-1,m=0):
     Reference: [1,2]"""
     EPSILON_AXIS=1e-7; # relative threshold for using axis formula
     chi = np.arctan(m)
+    if Gamma_r==0:
+        return vr*0,vr*0,vr*0
     # Flattening
     shape_in=vr.shape
     vr   = np.asarray(vr).ravel()
     vpsi = np.asarray(vpsi).ravel()
     vz   = np.asarray(vz).ravel()
-    # Alloc
-    u_x = np.zeros(vr.shape)
-    u_y = np.zeros(vr.shape)
+    # --- Computes ux, uy, uz, upsi
     u_z = np.zeros(vr.shape)
-    u_psi = np.zeros(vr.shape)
-    u_r = np.zeros(vr.shape)
     if (m == 0):
-        # u_z, u_r==0
         u_psi = np.multiply(Gamma_r/(4*np.pi*vr), (1+vz/np.sqrt(vr** 2 + vz**2)))
         u_x   = np.multiply(np.cos(vpsi),u_psi)
         u_y   = np.multiply(np.sin(vpsi),u_psi)
     else:
         if (np.max(np.abs(vz)) > 0):
             # need to use general formula
-            visc_model = 0
-            t = 0
-            bComputeGrad = 0
+            u_x = np.zeros(vr.shape)
+            u_y = np.zeros(vr.shape)
             e = np.array([np.sin(chi),0,np.cos(chi)])
             for i,(r,psi,z) in enumerate(zip(vr,vpsi,vz)):
-                u_x[i],u_y[i],u_z[i]= vl_semiinf_u(r*np.cos(psi),r*np.sin(psi),z,e[0],e[1],e[2],Gamma_r,visc_model,t)
+                u_x[i],u_y[i],u_z[i]= vl_semiinf_u(r*np.cos(psi),r*np.sin(psi),z,e[0],e[1],e[2],Gamma_r,visc_model=0,t=0)
             u_psi = np.multiply(- u_x,np.sin(vpsi)) + np.multiply(u_y, np.cos(vpsi))
-            u_r   = np.multiply(  u_x,np.cos(vpsi)) + np.multiply(u_y, np.sin(vpsi))
         else:
             # rotor plane analytical (see Yaw article)
+            u_psi = np.zeros(vr.shape)
             coschi = 1 / np.sqrt(1 + m ** 2)
             sinchi = m / np.sqrt(1 + m ** 2)
             Iz = vr > (EPSILON_AXIS)
@@ -199,66 +202,85 @@ def svc_root_u_polar(vr,vpsi,vz,Gamma_r=-1,m=0):
             u_psi[Iz] = np.multiply(Gamma_r/(4*np.pi*vr[Iz]), 1.0/(1-np.cos(vpsi[Iz])*sinchi)*coschi)
             u_z  [bnIz] =0
             u_psi[bnIz] =0
-            #u_r = 0 * vr
             u_x = np.multiply(np.cos(vpsi),u_psi)
             u_y = np.multiply(np.sin(vpsi),u_psi)
     # Reshaping to input shape
-    u_x   =  u_x.reshape(shape_in)   
-    u_y   =  u_y.reshape(shape_in)   
-    u_z   =  u_z.reshape(shape_in)   
-    u_psi =  u_psi.reshape(shape_in) 
-    u_r   =  u_psi.reshape(shape_in) 
-    return (u_x,u_y,u_z,u_r,u_psi,u_psi)
+    u_z   =  u_z.reshape(shape_in) 
+    if polar_out:
+        u_r   = np.multiply(  u_x,np.cos(vpsi)) + np.multiply(u_y, np.sin(vpsi))
+        u_psi =  u_psi.reshape(shape_in) 
+        return (u_r,u_psi,u_z)
+    else:
+        u_x   =  u_x.reshape(shape_in)   
+        u_y   =  u_y.reshape(shape_in)   
+    return (u_x,u_y,u_z)
 
+def svc_u_polar(vr,vpsi,vz,gamma_t,gamma_l,Gamma_r,R=1,m=0,ntheta=180,polar_out=False):
+    """ Induced velocities from a skewed semi infinite cylinder with:
+       - tangential vorticity gamma_t
+       - longitudinal vorticity gamma_l
+       - a root vortex, Gamma_r
+    """
+    u1 ,u2 ,u3  = svc_longi_u_polar(vr,vpsi,vz,gamma_l,R=R,m=m,ntheta=ntheta,polar_out=False)
+    u1t,u2t,u3t = svc_tang_u_polar (vr,vpsi,vz,gamma_t,R=R,m=m,ntheta=ntheta,polar_out=False)
+    u1 += u1t
+    u2 += u2t
+    u3 += u3t
+    u1t,u2t,u3t = svc_root_u_polar (vr,vpsi,vz,Gamma_r    ,m=m,           polar_out=False)
+    u1 += u1t
+    u2 += u2t
+    u3 += u3t
+    return u1,u2,u3
 
 # --------------------------------------------------------------------------------}
-# --- Main functions 
+# --- Main functions with Cartesian inputs
 # --------------------------------------------------------------------------------{
-def svc_longi_u(Xcp,Ycp,Zcp,gamma_l=-1,R=1,m=0,ntheta=180):
+def svc_longi_u(Xcp,Ycp,Zcp,gamma_l=-1,R=1,m=0,ntheta=180,polar_out=False):
     """ Induced velocity from a skewed semi infinite cylinder of longitudinal vorticity.
     The cylinder axis is defined by x=m.z, m=tan(chi). The rotor is in the plane z=0.
     INPUTS:
        Xcp,Ycp,Zcp: vector or matrix of control points Cartesian Coordinates
-       gamma_t    : tangential vorticity of the vortex sheet (circulation per unit of length oriented along psi). (for WT rotating positively along psi , gamma psi is negative)
+       gamma_l    : longitudinal vorticity of the vortex sheet (circulation per unit of length oriented along zeta), negative for a WT
        R          : radius of cylinder
        m =tan(chi): tangent of wake skew angle
        ntheta     : number of points used for integration
     Reference: [1,2]"""
-    # --- Conversion to polar coordinates
-    vr   = np.sqrt(Xcp**2+Ycp**2)
-    vpsi = np.arctan2(Ycp,Xcp)
-    vz   = Zcp;
-    u_x,u_y,u_z,u_r,u_psi=svc_longi_u_polar(vr,vpsi,vz,gamma_t,R,m,ntheta)
-    return u_x,u_y,u_z,u_r,u_psi
+    vr, vpsi = np.sqrt(Xcp**2+Ycp**2), np.arctan2(Ycp,Xcp) # polar coords
+    u1,u2,u3=svc_longi_u_polar(vr,vpsi,Zcp,gamma_t,R,m,ntheta,polar_out=polar_out)
+    return u1,u2,u3 # ux,uy,uz OR ur,upsi,uz
 
-def svc_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,m=0,ntheta=180):
+def svc_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,m=0,ntheta=180,polar_out=False):
     """ Induced velocity from a skewed semi infinite cylinder of tangential vorticity.
     The cylinder axis is defined by x=m.z, m=tan(chi). The rotor is in the plane z=0.
     INPUTS:
        Xcp,Ycp,Zcp: vector or matrix of control points Cartesian Coordinates
-       gamma_t    : tangential vorticity of the vortex sheet (circulation per unit of length oriented along psi). (for WT rotating positively along psi , gamma psi is negative)
+       gamma_t    : tangential vorticity of the vortex sheet (circulation per unit of length oriented along psi), negative for a WT
        R          : radius of cylinder
        m =tan(chi): tangent of wake skew angle
        ntheta     : number of points used for integration
     Reference: [1,2]"""
-    # --- Conversion to polar coordinates
-    vr   = np.sqrt(Xcp**2+Ycp**2)
-    vpsi = np.arctan2(Ycp,Xcp)
-    vz   = Zcp;
-    u_x,u_y,u_z,u_r,u_psi=svc_tang_u_polar(vr,vpsi,vz,gamma_t,R,m,ntheta)
-    return u_x,u_y,u_z,u_r,u_psi
-#     ur = np.full(r.shape,np.nan)
-#     Iz = r < (EPSILON_AXIS * R)
-#     # --- From this point on, variables have the size of ~Iz..
+    vr, vpsi = np.sqrt(Xcp**2+Ycp**2), np.arctan2(Ycp,Xcp) # polar coords
+    u1,u2,u3 = svc_tang_u_polar(vr,vpsi,Zcp,gamma_t,R,m,ntheta,polar_out=polar_out)
+    return u1,u2,u3 # ux,uy,uz OR ur,upsi,uz
+
+def svc_root_u(Xcp,Ycp,Zcp,gamma_t=-1,m=0,ntheta=180,polar_out=False):
+    """ Induced velocity from a skewed root vortex.
+    The root vortex axis is defined by x=m.z, m=tan(chi). The rotor is in the plane z=0.
+    INPUTS:
+       Xcp,Ycp,Zcp: vector or matrix of control points Cartesian Coordinates
+       Gamma_r    : Root vortex circulation, negative for a wind turbine
+       m =tan(chi): tangent of wake skew angle
+       ntheta     : number of points used for integration
+    Reference: [1,2]"""
+    vr, vpsi = np.sqrt(Xcp**2+Ycp**2), np.arctan2(Ycp,Xcp) # polar coords
+    u1,u2,u3 = svc_root_u_polar(vr,vpsi,Zcp,gamma_t,R,m,ntheta,polar_out=polar_out)
+    return u1,u2,u3 # ux,uy,uz OR ur,upsi,uz
 
 def svcs_tang_u(Xcp,Ycp,Zcp,gamma_t,R,m,Xcyl,Ycyl,Zcyl,ntheta=180):
     """ 
     Computes the velocity field for nCyl*nr cylinders, extending along z:
         nCyl: number of main cylinders
         nr  : number of concentric cylinders within a main cylinder 
-
-    TODO: angles
-
     INPUTS: 
         Xcp,Ycp,Zcp: cartesian coordinates of control points where the velocity field is not be computed
         gamma_t: array of size (nCyl,nr), distribution of gamma for each cylinder as function of radius
@@ -273,13 +295,12 @@ def svcs_tang_u(Xcp,Ycp,Zcp,gamma_t,R,m,Xcyl,Ycyl,Zcyl,ntheta=180):
     ux = np.zeros(Xcp.shape)
     uy = np.zeros(Xcp.shape)
     uz = np.zeros(Xcp.shape)
-    
     nCyl,nr = R.shape
     for i in np.arange(nCyl):
         for j in np.arange(nr):
             print('.',end='')
             if np.abs(gamma_t[i,j]) > 0:
-                ux1,uy1,uz1,_,_ = svc_tang_u(Xcp-Xcyl[i],Ycp-Ycyl[i],Zcp-Zcyl[i],gamma_t[i,j],R[i,j],m[i,j],ntheta=ntheta)
+                ux1,uy1,uz1,_,_ = svc_tang_u(Xcp-Xcyl[i],Ycp-Ycyl[i],Zcp-Zcyl[i],gamma_t[i,j],R[i,j],m[i,j],ntheta=ntheta,polar_out=False)
                 ux = ux + ux1
                 uy = uy + uy1
                 uz = uz + uz1
@@ -294,19 +315,21 @@ def fV_Trailed(vr,vpsi,vz,m,gamma_longi,ntheta,nout=7):
     """ See Yaw article for notations and coordinate system
     Return induced velocity by an infinite number of trailed vortices (semi-infinite lines whose starting points lay on the rotor circle)
     """
-    u_x,u_y,u_z,u_r,u_psi,u_psi= svc_longi_u_polar(vr,vpsi,vz,gamma_longi,R=1,m=m,ntheta=ntheta)
+    u_x,u_y,u_z = svc_longi_u_polar(vr,vpsi,vz,gamma_longi,R=1,m=m,ntheta=ntheta,polar_out=False)
     if nout==1:
         return u_z
-    u_zeta,u_xi=skew_components(u_x,u_z,m)
+    u_zeta,u_xi = skew_components(u_x,u_z,m)
+    u_r,u_psi   = polar_components(u_x,u_y,vpsi)
     outputs=(u_z,u_psi,u_x,u_y,u_zeta,u_xi,u_r)
     return outputs[:nout]
 
 def fV_Tangential(vr,vpsi,vz,m,gamma_t,ntheta,nout=7): 
     """ This function is purely for backward compatibility with Matlab scripts"""
-    u_x,u_y,u_z,u_r,u_psi=svc_tang_u_polar(vr,vpsi,vz,gamma_t,R=1,m=m,ntheta=ntheta)
+    u_x,u_y,u_z = svc_tang_u_polar(vr,vpsi,vz,gamma_t,R=1,m=m,ntheta=ntheta,polar_out=False)
     if nout==1:
         return u_z
     u_zeta,u_xi=skew_components(u_x,u_z,m)
+    u_r,u_psi =polar_components(u_x,u_y,vpsi)
     outputs=(u_z,u_psi,u_x,u_y,u_zeta,u_xi,u_r)
     return outputs[:nout]
 
@@ -314,10 +337,11 @@ def fV_Root(vr,vpsi,vz, m =0, Gamma_r=-1,nout=1):
     """ Return induced velocity by the root vortex
     Coordinate system is true polar coordinates, with convention of Yaw article
     """
-    (u_x,u_y,u_z,u_r,u_psi,u_psi)= svc_root_u_polar(vr,vpsi,vz,Gamma_r=Gamma_r,m=m)
+    u_x,u_y,u_z= svc_root_u_polar(vr,vpsi,vz,Gamma_r=Gamma_r,m=m,polar_out=False)
     if nout==1:
         return u_z
-    u_zeta,u_xi=skew_components(u_x,u_z,m)
+    u_zeta,u_xi = skew_components(u_x,u_z,m)
+    u_r,u_psi   = polar_components(u_x,u_y,vpsi)
     outputs=(u_z,u_psi,u_x,u_y,u_zeta,u_xi,u_r)
     return outputs[:nout]
 
@@ -426,7 +450,7 @@ class TestSkewedCylinder(unittest.TestCase):
         m=np.tan(chi) # tan(chi) 
         eps=10**-1 *R
         # --- At rotor center (see also next test, stronger)
-        u_x,u_y,u_z,u_r,u_psi=svc_tang_u(0,0,0,gamma_t,R,m)
+        u_x,u_y,u_z = svc_tang_u(0,0,0,gamma_t,R,m)
         u_zeta,u_xi=skew_components(u_x,u_z,m)
         uz0=gamma_t/2
         np.testing.assert_almost_equal(u_x        ,np.tan(chi/2)*uz0      ,decimal=7)
@@ -437,7 +461,7 @@ class TestSkewedCylinder(unittest.TestCase):
         y=np.linspace(0,R-eps,4)
         x=y*0
         z=y*0
-        u_x,u_y,u_z,u_r,u_psi=svc_tang_u(x,y,z,gamma_t,R,m)
+        u_x,u_y,u_z=svc_tang_u(x,y,z,gamma_t,R,m)
         u_zeta,u_xi=skew_components(u_x,u_z,m)
         uz0=np.asarray([gamma_t/2]*len(x))
         np.testing.assert_almost_equal(u_zeta     ,uz0                    ,decimal=7)
@@ -451,7 +475,7 @@ class TestSkewedCylinder(unittest.TestCase):
         x=vR*np.cos(vPsi)
         y=vR*np.sin(vPsi)
         z=x*0
-        u_x,u_y,u_z,u_r,u_psi=svc_tang_u(x,y,z,gamma_t,R,m)
+        u_x,u_y,u_z=svc_tang_u(x,y,z,gamma_t,R,m)
         u_zeta,u_xi=skew_components(u_x,u_z,m)
         uz0=gamma_t/2
         np.testing.assert_almost_equal(u_zeta , uz0 ,decimal=5)
@@ -459,7 +483,7 @@ class TestSkewedCylinder(unittest.TestCase):
         # --- Plane y=0 (anti-)symmetry - x,z,zeta,xi: symmetric - y: anti-symmetric
         x,y = np.meshgrid(np.linspace(-R/3,R/3,3), [-R/2,R/2] )
         z=x*0
-        u_x,u_y,u_z,u_r,u_psi=svc_tang_u(x,y,z,gamma_t,R,m)
+        u_x,u_y,u_z=svc_tang_u(x,y,z,gamma_t,R,m)
         u_zeta,u_xi=skew_components(u_x,u_z,m)
         np.testing.assert_almost_equal(u_x   [0,:], u_x   [1,:])
         np.testing.assert_almost_equal(u_z   [0,:], u_z   [1,:])
@@ -474,9 +498,9 @@ class TestSkewedCylinder(unittest.TestCase):
         x=r0*np.cos(vPsi)
         y=r0*np.sin(vPsi)
         z=x*0
-        u_x,u_y,u_z,u_r,u_psi     =svc_tang_u(x,y,z,gamma_t,R,m)
+        u_x,u_y,u_z     =svc_tang_u(x,y,z,gamma_t,R,m)
         u_zeta,u_xi=skew_components(u_x,u_z,m)
-        u_x0,u_y0,u_z0,u_r0,u_psi0=svc_tang_u(0,0,0,gamma_t,R,m)
+        u_x0,u_y0,u_z0=svc_tang_u(0,0,0,gamma_t,R,m)
         u_zeta0,u_xi0=skew_components(u_x0,u_z0,m)
         np.testing.assert_almost_equal(u_x   [:,0]+u_x   [:,1], 2*u_x0   )
         np.testing.assert_almost_equal(u_y   [:,0]+u_y   [:,1], 2*u_y0   )
@@ -494,7 +518,7 @@ class TestSkewedCylinder(unittest.TestCase):
         eps=10**-1 *R
         z0=1000*R # Far wake
         # --- At rotor center (see also next test, stronger)
-        #u_x,u_y,u_z,u_r,u_psi,u_zeta,u_xi=svc_tang_u(0,0,0,gamma_t,R,m)
+        #u_x,u_y,u_z=svc_tang_u(0,0,0,gamma_t,R,m)
         #uz0=gamma_t/2
         #np.testing.assert_almost_equal(u_x        ,np.tan(chi/2)*uz0      ,decimal=7)
         #np.testing.assert_almost_equal(u_z        ,uz0 ,decimal=7)
@@ -504,7 +528,7 @@ class TestSkewedCylinder(unittest.TestCase):
         x=vR*np.cos(vTheta)+z0*m
         y=vR*np.sin(vTheta)
         z=x*0 + z0
-        u_x,u_y,u_z,u_r,u_psi=svc_tang_u(x,y,z,gamma_t,R,m)
+        u_x,u_y,u_z=svc_tang_u(x,y,z,gamma_t,R,m)
         u_zeta,u_xi=skew_components(u_x,u_z,m)
         np.testing.assert_almost_equal(u_zeta , gamma_t               , decimal=5)
         np.testing.assert_almost_equal(u_xi  , -gamma_t*np.tan(chi/2) , decimal=5)
@@ -514,8 +538,6 @@ class TestSkewedCylinder(unittest.TestCase):
         #print('ux',u_x)
         #print('uy',u_y)
         #print('uz',u_z)
-        #print('ur',u_r)
-        #print('upsi',u_psi)
         #print('uzeta',u_zeta)
         #print('uxi',u_xi)
 
@@ -554,8 +576,8 @@ class TestSkewedCylinder(unittest.TestCase):
         Yr          = 0*Zr
 
         def compare(x,y,z,dec):
-            ux,uy,uz,ur,upsi = svc_tang_u(x,y,z,gamma_t,R,m)
-            ux_r,uy_r,uz_r   = rings_u(x,y,z,vGamma_r,vR_r,Xr,Yr,Zr,cartesianOut=True)
+            ux,uy,uz       = svc_tang_u(x,y,z,gamma_t,R,m, polar_out=False)
+            ux_r,uy_r,uz_r = rings_u(x,y,z,vGamma_r,vR_r,Xr,Yr,Zr,polar_out = False)
             np.testing.assert_almost_equal(ux,ux_r,decimal=dec)
             np.testing.assert_almost_equal(uy,uy_r,decimal=dec)
             np.testing.assert_almost_equal(uz,uz_r,decimal=dec)

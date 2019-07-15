@@ -25,7 +25,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
 # --- Local
 from vortexcylinder.VortexCylinderSkewed import svc_tang_u
-from vortexcylinder.VortexRing import ring_u
 try:
     from pybra.colors import darkrainbow as cmap
     from pybra.colors import darkrainbow, adjust_color_lightness, manual_colorbar

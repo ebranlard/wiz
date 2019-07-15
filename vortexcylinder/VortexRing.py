@@ -13,7 +13,7 @@ from scipy.special import ellipk, ellipe
 # import warnings
 # warnings.filterwarnings('error')
 
-def ring_u(Xcp,Ycp,Zcp,Gamma=-1,R=1,cartesianOut=False,epsilon=0):
+def ring_u(Xcp,Ycp,Zcp,Gamma=-1,R=1,polar_out=True,epsilon=0):
     """ 
     Compute the induced velocity from a vortex ring located at z=0
     """
@@ -23,10 +23,10 @@ def ring_u(Xcp,Ycp,Zcp,Gamma=-1,R=1,cartesianOut=False,epsilon=0):
     Ycp=np.asarray(Ycp)
     Zcp=np.asarray(Zcp)
     if Xcp.shape==(0,):
-        if cartesianOut:
-            return np.array([]),np.array([]),np.array([]),
-        else:
+        if polar_out:
             return np.array([]), np.array([])
+        else:
+            return np.array([]),np.array([]),np.array([]),
 
     r = np.sqrt(Xcp**2 + Ycp**2)
     z = Zcp
@@ -65,7 +65,7 @@ def ring_u(Xcp,Ycp,Zcp,Gamma=-1,R=1,cartesianOut=False,epsilon=0):
     ur[bnIz] =Gamma/(4*np.pi)*R*(np.multiply(((z)/B),(I1 - np.multiply(A,I2))))
     uz[bnIz] =Gamma/(4*np.pi)*R*(np.multiply((R + np.multiply(r,A) / B),I2) - np.multiply(r/B,I1))
 
-    if not cartesianOut:
+    if polar_out:
         return ur,uz
     else:
         psi = np.arctan2(Ycp,Xcp)     ;
@@ -73,7 +73,7 @@ def ring_u(Xcp,Ycp,Zcp,Gamma=-1,R=1,cartesianOut=False,epsilon=0):
         uy=ur*np.sin(psi)
         return ux,uy,uz
 
-def rings_u(Xcp,Ycp,Zcp,Gamma_r,Rr,Xr,Yr,Zr,cartesianOut=False,epsilon=0):
+def rings_u(Xcp,Ycp,Zcp,Gamma_r,Rr,Xr,Yr,Zr,polar_out=True,epsilon=0):
     """ 
     Compute the induced velocity from nRings vortex rings
         nRings: number of main rings
@@ -88,28 +88,26 @@ def rings_u(Xcp,Ycp,Zcp,Gamma_r,Rr,Xr,Yr,Zr,cartesianOut=False,epsilon=0):
     Xcp=np.asarray(Xcp)
     Ycp=np.asarray(Ycp)
     Zcp=np.asarray(Zcp)
-    if cartesianOut:
+    if polar_out:
+        ur = np.zeros(Xcp.shape)
+        uz = np.zeros(Xcp.shape)
+        for ir,(Gamma,R,xr,yr,zr) in enumerate(zip(Gamma_r,Rr,Xr,Yr,Zr)):
+            if np.abs(Gamma) > 0:
+                u1 = ring_u(Xcp-xr,Ycp-yr,Zcp-zr,Gamma,R,polar_out=polar_out,epsilon=epsilon)
+                ur = ur + u1[0]
+                uz = uz + u1[1]
+        return ur,uz
+    else:
         ux = np.zeros(Xcp.shape)
         uy = np.zeros(Xcp.shape)
         uz = np.zeros(Xcp.shape)
-    else:
-        ur = np.zeros(Xcp.shape)
-        uz = np.zeros(Xcp.shape)
-    for ir,(Gamma,R,xr,yr,zr) in enumerate(zip(Gamma_r,Rr,Xr,Yr,Zr)):
-        if np.abs(Gamma) > 0:
-            #print('.',end='')
-            u1 = ring_u(Xcp-xr,Ycp-yr,Zcp-zr,Gamma,R,cartesianOut=cartesianOut,epsilon=epsilon)
-            if cartesianOut:
+        for ir,(Gamma,R,xr,yr,zr) in enumerate(zip(Gamma_r,Rr,Xr,Yr,Zr)):
+            if np.abs(Gamma) > 0:
+                u1 = ring_u(Xcp-xr,Ycp-yr,Zcp-zr,Gamma,R,polar_out=polar_out,epsilon=epsilon)
                 ux = ux + u1[0]
                 uy = uy + u1[1]
                 uz = uz + u1[2]
-            else:
-                ur = ur + u1[0]
-                uz = uz + u1[1]
-    if cartesianOut:
         return ux,uy,uz
-    else:
-        return ur,uz
 
 # --------------------------------------------------------------------------------}
 # --- TEST 

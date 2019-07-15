@@ -24,7 +24,7 @@ import os
 # --- Local
 from vortexcylinder.VortexCylinderSkewed import svc_tang_u
 from vortexcylinder.VortexCylinder       import cylinder_tang_semi_inf_u
-from vortexcylinder.VortexRing import ring_u, rings_u
+from vortexcylinder.VortexRing import rings_u
 try:
     from pybra.colors import darkrainbow
     from pybra.colors import manual_colorbar
@@ -122,12 +122,12 @@ for nD in [0,4]:
         Xr = m*Zr
         Yr = 0*Zr
 
-        ux_c0,uy_c0,uz_c0      =rings_u(0,0,0      ,vGamma_r,vR_r,Xr,Yr,Zr,cartesianOut=True)
-        ux_r_c, uy_r_c, uz_r_c =rings_u(X_c,Y_c,Z_c,vGamma_r,vR_r,Xr,Yr,Zr,cartesianOut=True)
+        ux_c0,uy_c0,uz_c0      =rings_u(0,0,0      ,vGamma_r,vR_r,Xr,Yr,Zr,polar_out=False)
+        ux_r_c, uy_r_c, uz_r_c =rings_u(X_c,Y_c,Z_c,vGamma_r,vR_r,Xr,Yr,Zr,polar_out=False)
         print('uz0',uz_c0)
         if bRootVortex:
             vR_hub = vR_r*0 +r_hub
-            ux_r_c_root, uy_r_c_root, uz_r_c_root =rings_u(X_c,Y_c,Z_c,-vGamma_r,vR_hub,Xr,Yr,Zr,cartesianOut=True)
+            ux_r_c_root, uy_r_c_root, uz_r_c_root =rings_u(X_c,Y_c,Z_c,-vGamma_r,vR_hub,Xr,Yr,Zr,polar_out=False)
             ux_r_c += ux_r_c_root
             uy_r_c += uy_r_c_root
             uz_r_c += uz_r_c_root

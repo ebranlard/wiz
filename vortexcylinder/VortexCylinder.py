@@ -2,7 +2,7 @@
 References:
     [1] E. Branlard, M. Gaunaa - Cylindrical vortex wake model: right cylinder - Wind Energy, 2014
     [2] E. Branlard - Wind Turbine Aerodynamics and Vorticity Based Method, Springer, 2017
-    [3] E. Branlard, A. Meyer Forsting, Using a cylindrical vortex model to assess the induction zone n front of aligned and yawedd rotors, in Proceedings of EWEA Offshore Conference, 2015
+    [3] E. Branlard, A. Meyer Forsting, Using a cylindrical vortex model to assess the induction zone n front of aligned and yawed rotors, in Proceedings of EWEA Offshore Conference, 2015
 """
 #--- Legacy python 2.7
 from __future__ import division
@@ -22,7 +22,7 @@ except:
 
 
 
-def cylinder_tang_semi_inf_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,cartesianOut=False,epsilon=0):
+def cylinder_tang_semi_inf_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,polar_out=True,epsilon=0):
     """ Induced velocity from a semi infinite cylinder extending along the z axis, starting at z=0
     INPUTS:
       Xcp,Ycp,Zcp: vector or matrix of control points coordinates
@@ -37,11 +37,10 @@ def cylinder_tang_semi_inf_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,cartesianOut=False,epsil
     Ycp=np.asarray(Ycp)
     Zcp=np.asarray(Zcp)
     if Xcp.shape==(0,):
-        if cartesianOut:
-            return np.array([]),np.array([]),np.array([]),
-        else:
+        if polar_out:
             return np.array([]), np.array([])
-
+        else:
+            return np.array([]),np.array([]),np.array([]),
 
     r = np.sqrt(Xcp ** 2 + Ycp ** 2)
     z = Zcp
@@ -88,7 +87,7 @@ def cylinder_tang_semi_inf_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,cartesianOut=False,epsil
         T1[b]=1/2*(1 + (R-r[b])*np.sqrt(1+epsilon2[b]/(R+r[b])**2)/np.sqrt((R-r[b])**2 +epsilon2[b]))
     uz[bnIz] = gamma_t/2*( T1 + np.multiply(np.multiply(z,k) / (2 * np.pi * np.sqrt(r * R)),(KK + np.multiply((R - r)/(R + r),PI))))
     
-    if not cartesianOut:
+    if polar_out:
         return ur,uz
     else:
         psi = np.arctan2(Ycp,Xcp)     ;
@@ -143,7 +142,7 @@ def cylinders_tang_semi_inf_u(Xcp,Ycp,Zcp,gamma_t,R,Xcyl,Ycyl,Zcyl,epsilon=0):
         for j in np.arange(nr):
 #             print('.',end='')
             if np.abs(gamma_t[i,j]) > 0:
-                ux1,uy1,uz1 = cylinder_tang_semi_inf_u(Xcp-Xcyl[i],Ycp-Ycyl[i],Zcp-Zcyl[i],gamma_t[i,j],R[i,j],cartesianOut=True,epsilon=epsilon)
+                ux1,uy1,uz1 = cylinder_tang_semi_inf_u(Xcp-Xcyl[i],Ycp-Ycyl[i],Zcp-Zcyl[i],gamma_t[i,j],R[i,j],polar_out=False,epsilon=epsilon)
                 ux = ux + ux1
                 uy = uy + uy1
                 uz = uz + uz1
@@ -151,7 +150,7 @@ def cylinders_tang_semi_inf_u(Xcp,Ycp,Zcp,gamma_t,R,Xcyl,Ycyl,Zcyl,epsilon=0):
     return ux,uy,uz
     
 
-def cylinder_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,z1=-2,z2=2,cartesianOut=False,epsilon=0):
+def cylinder_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,z1=-2,z2=2,polar_out=True,epsilon=0):
     """ Induced velocity from a finite cylinder extending along the z axis, extending between z1 and z2
     INPUTS:
       Xcp,Ycp,Zcp: vector or matrix of control points coordinates
@@ -167,10 +166,10 @@ def cylinder_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,z1=-2,z2=2,cartesianOut=False,eps
     Ycp=np.asarray(Ycp)
     Zcp=np.asarray(Zcp)
     if Xcp.shape==(0,):
-        if cartesianOut:
-            return np.array([]),np.array([]),np.array([]),
-        else:
+        if polar_out:
             return np.array([]), np.array([])
+        else:
+            return np.array([]),np.array([]),np.array([]),
 
     r = np.sqrt(Xcp ** 2 + Ycp ** 2)
     ur = np.full(r.shape,np.nan)
@@ -196,7 +195,7 @@ def cylinder_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,z1=-2,z2=2,cartesianOut=False,eps
     ur = np.multiply(gamma_t / (2 * np.pi) * np.sqrt(R / r),((np.multiply((2 - k2_2) / k2,KK2) - np.multiply(2.0 / k2,EE2)) - (np.multiply((2 - k1_2) / k1,KK1) - np.multiply(2.0 / k1,EE1))))
     # uz
     uz = np.multiply(- gamma_t / (4 * np.pi * np.sqrt(r * R)),((np.multiply(np.multiply(zz2,k2),(KK2 + np.multiply((R - r) / (R + r),PI2)))) - (np.multiply(np.multiply(zz1,k1),(KK1 + np.multiply((R - r) / (R + r),PI1))))))
-    if not cartesianOut:
+    if polar_out:
         return ur,uz
     else:
         psi = np.arctan2(Ycp,Xcp)     ;
@@ -292,7 +291,7 @@ class TestCylinder(unittest.TestCase):
         vgamma_t[0,0]= gamma_t
 
         ux,uy,uz             = cylinders_tang_semi_inf_u(X,Y,Z,vgamma_t,vR,Xcyl,Ycyl,Zcyl)
-        ux_ref,uy_ref,uz_ref = cylinder_tang_semi_inf_u(X,Y,Z,gamma_t,R,cartesianOut=True)
+        ux_ref,uy_ref,uz_ref = cylinder_tang_semi_inf_u(X,Y,Z,gamma_t,R,polar_out=False)
         np.testing.assert_almost_equal(ux,ux_ref)
         np.testing.assert_almost_equal(uz,uz_ref)
 

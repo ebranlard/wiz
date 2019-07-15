@@ -115,6 +115,8 @@ def main(test=False):
 
     if not test:
         plt.show()
+    else:
+        plt.close('all')
 
 class Test(unittest.TestCase):
     def test_Article_Skew_RootVortex(self):

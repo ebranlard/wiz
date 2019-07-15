@@ -46,7 +46,7 @@ zs = np.linspace(-2.15,2.15,nx).astype(np.float32)
 xs = np.linspace(-2.15,2.15,nx).astype(np.float32)
 [Z,X]=np.meshgrid(zs,xs)
 Y=X*0
-ux,uy,uz = ring_u(X,Y,Z,Gamma=1,R=1,cartesianOut=True)
+ux,uy,uz = ring_u(X,Y,Z,Gamma=1,R=1,polar_out=False)
 
 Speed=np.sqrt((uz**2+ux**2))
 Speed[Speed>1]=1
