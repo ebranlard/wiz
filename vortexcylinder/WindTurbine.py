@@ -103,9 +103,9 @@ class WindTurbine:
     def update_loading(self,r=None,Ct=None,Gamma=None,Omega=None):
         U0=np.linalg.norm(self.U0_g)
         if Ct is not None:
-            gamma_t,gamma_l,Gamma_r,misc=WakeVorticityFromCt(r,Ct,self.R,U0,Omega):
+            gamma_t,gamma_l,Gamma_r,misc=WakeVorticityFromCt(r,Ct,self.R,U0,Omega)
         elif Gamma is not None:
-            gamma_t,gamma_l,Gamma_r,misc=WakeVorticityFromGamma(r,Ct,self.R,U0,Omega):
+            gamma_t,gamma_l,Gamma_r,misc=WakeVorticityFromGamma(r,Ct,self.R,U0,Omega)
         else:
             raise Exception('Unknown loading spec')
 
@@ -216,6 +216,7 @@ class WindTurbine:
 class TestWindTurbine(unittest.TestCase):
 
     def test_WT_main(self):
+        # TODO
         import matplotlib.pyplot as plt
         # --- Test in Cylinder coord
         R=65
@@ -237,39 +238,39 @@ class TestWindTurbine(unittest.TestCase):
         Ct_AD = Ct_const_cutoff(CT0,r_bar_cut,vr_bar)
 
         WT=WindTurbine(R=R,e_shaft_yaw0=[0,0,1],e_vert=[0,1,0])
-        yaw=np.linspace(0,2*np.pi,9)
+        #yaw=np.linspace(0,2*np.pi,9)
 
 
 
-        for y in yaw:
-            WT.update_yaw_pos( y - np.pi/6)
-            WT.update_wind([10*np.sin(y),0,10*np.cos(y)])
-            WT.update_loading(r=vr_bar*R,Ct=Ct_AD)
+        #for y in yaw:
+        #    WT.update_yaw_pos( y - np.pi/6)
+        #    WT.update_wind([10*np.sin(y),0,10*np.cos(y)])
+        #    WT.update_loading(r=vr_bar*R,Ct=Ct_AD)
 
-            # --- Flow field and speed
-            nx=40
-            nz=41
-            x = np.linspace(-4*R,4*R,nx)
-            z = np.linspace(-4*R,4*R,nz)
-            [X,Z]=np.meshgrid(x,z)
-            Y=Z*0+h_hub
-            ux,uy,uz = WT.compute_u(X,Y,Z)
+        #    # --- Flow field and speed
+        #    nx=40
+        #    nz=41
+        #    x = np.linspace(-4*R,4*R,nx)
+        #    z = np.linspace(-4*R,4*R,nz)
+        #    [X,Z]=np.meshgrid(x,z)
+        #    Y=Z*0+h_hub
+        #    ux,uy,uz = WT.compute_u(X,Y,Z)
 
-            fig=plt.figure()
-            ax=fig.add_subplot(111)
-            Speed=np.sqrt(uz**2+ux**2)
-            im=ax.contourf(Z/R,X/R,Speed,levels=30)
-            Rotor=WT.rotor_disk_points()
-            ax.plot(Rotor[2,:]/R,Rotor[0,:]/R,'k--')
-            cb=fig.colorbar(im)
-            sp=ax.streamplot(z/R,x/R,uz.T,ux.T,color='k',linewidth=0.7,density=2)
-            ax.set_xlabel('z/R [-]')
-            ax.set_ylabel('x/R [-]')
-            deg=180/np.pi
-            ax.set_title('yaw_pos = {:.1f} - yaw_wind={:.1f} - chi={:.1f} - yaw_err={:.1f}'.format(WT.yaw_pos*deg,WT.yaw_wind*deg,WT.chi*deg,WT.yaw_error*deg))
+        #    fig=plt.figure()
+        #    ax=fig.add_subplot(111)
+        #    Speed=np.sqrt(uz**2+ux**2)
+        #    im=ax.contourf(Z/R,X/R,Speed,levels=30)
+        #    Rotor=WT.rotor_disk_points()
+        #    ax.plot(Rotor[2,:]/R,Rotor[0,:]/R,'k--')
+        #    cb=fig.colorbar(im)
+        #    sp=ax.streamplot(z/R,x/R,uz.T,ux.T,color='k',linewidth=0.7,density=2)
+        #    ax.set_xlabel('z/R [-]')
+        #    ax.set_ylabel('x/R [-]')
+        #    deg=180/np.pi
+        #    ax.set_title('yaw_pos = {:.1f} - yaw_wind={:.1f} - chi={:.1f} - yaw_err={:.1f}'.format(WT.yaw_pos*deg,WT.yaw_wind*deg,WT.chi*deg,WT.yaw_error*deg))
 
 
-            plt.show()
+        #    plt.show()
 
 
         # --- Test in meteorological coord
