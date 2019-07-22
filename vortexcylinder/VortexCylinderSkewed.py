@@ -180,8 +180,8 @@ def svc_root_u_polar(vr,vpsi,vz,Gamma_r=-1,m=0,polar_out=False):
     u_z = np.zeros(vr.shape)
     if (m == 0):
         u_psi = np.multiply(Gamma_r/(4*np.pi*vr), (1+vz/np.sqrt(vr** 2 + vz**2)))
-        u_x   = np.multiply(np.cos(vpsi),u_psi)
-        u_y   = np.multiply(np.sin(vpsi),u_psi)
+        u_x   = -np.sin(vpsi)*u_psi
+        u_y   =  np.cos(vpsi)*u_psi
     else:
         if (np.max(np.abs(vz)) > 0):
             # need to use general formula
@@ -190,7 +190,7 @@ def svc_root_u_polar(vr,vpsi,vz,Gamma_r=-1,m=0,polar_out=False):
             e = np.array([np.sin(chi),0,np.cos(chi)])
             for i,(r,psi,z) in enumerate(zip(vr,vpsi,vz)):
                 u_x[i],u_y[i],u_z[i]= vl_semiinf_u(r*np.cos(psi),r*np.sin(psi),z,e[0],e[1],e[2],Gamma_r,visc_model=0,t=0)
-            u_psi = np.multiply(- u_x,np.sin(vpsi)) + np.multiply(u_y, np.cos(vpsi))
+            u_psi = - u_x*np.sin(vpsi) + u_y* np.cos(vpsi)
         else:
             # rotor plane analytical (see Yaw article)
             u_psi = np.zeros(vr.shape)
@@ -202,13 +202,13 @@ def svc_root_u_polar(vr,vpsi,vz,Gamma_r=-1,m=0,polar_out=False):
             u_psi[Iz] = np.multiply(Gamma_r/(4*np.pi*vr[Iz]), 1.0/(1-np.cos(vpsi[Iz])*sinchi)*coschi)
             u_z  [bnIz] =0
             u_psi[bnIz] =0
-            u_x = np.multiply(np.cos(vpsi),u_psi)
-            u_y = np.multiply(np.sin(vpsi),u_psi)
+            u_x = -np.sin(vpsi)*u_psi
+            u_y =  np.cos(vpsi)*u_psi
     # Reshaping to input shape
     u_z   =  u_z.reshape(shape_in) 
     if polar_out:
-        u_r   = np.multiply(  u_x,np.cos(vpsi)) + np.multiply(u_y, np.sin(vpsi))
-        u_psi =  u_psi.reshape(shape_in) 
+        u_r   = u_x * np.cos(vpsi) + u_y * np.sin(vpsi)
+        u_psi = u_psi.reshape(shape_in) 
         return (u_r,u_psi,u_z)
     else:
         u_x   =  u_x.reshape(shape_in)   
@@ -246,7 +246,7 @@ def svc_longi_u(Xcp,Ycp,Zcp,gamma_l=-1,R=1,m=0,ntheta=180,polar_out=False):
        ntheta     : number of points used for integration
     Reference: [1,2]"""
     vr, vpsi = np.sqrt(Xcp**2+Ycp**2), np.arctan2(Ycp,Xcp) # polar coords
-    u1,u2,u3=svc_longi_u_polar(vr,vpsi,Zcp,gamma_t,R,m,ntheta,polar_out=polar_out)
+    u1,u2,u3=svc_longi_u_polar(vr,vpsi,Zcp,gamma_l,R,m,ntheta,polar_out=polar_out)
     return u1,u2,u3 # ux,uy,uz OR ur,upsi,uz
 
 def svc_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,m=0,ntheta=180,polar_out=False):
@@ -263,7 +263,7 @@ def svc_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,m=0,ntheta=180,polar_out=False):
     u1,u2,u3 = svc_tang_u_polar(vr,vpsi,Zcp,gamma_t,R,m,ntheta,polar_out=polar_out)
     return u1,u2,u3 # ux,uy,uz OR ur,upsi,uz
 
-def svc_root_u(Xcp,Ycp,Zcp,gamma_t=-1,m=0,ntheta=180,polar_out=False):
+def svc_root_u(Xcp,Ycp,Zcp,Gamma_r=-1,m=0,polar_out=False):
     """ Induced velocity from a skewed root vortex.
     The root vortex axis is defined by x=m.z, m=tan(chi). The rotor is in the plane z=0.
     INPUTS:
@@ -273,7 +273,7 @@ def svc_root_u(Xcp,Ycp,Zcp,gamma_t=-1,m=0,ntheta=180,polar_out=False):
        ntheta     : number of points used for integration
     Reference: [1,2]"""
     vr, vpsi = np.sqrt(Xcp**2+Ycp**2), np.arctan2(Ycp,Xcp) # polar coords
-    u1,u2,u3 = svc_root_u_polar(vr,vpsi,Zcp,gamma_t,R,m,ntheta,polar_out=polar_out)
+    u1,u2,u3 = svc_root_u_polar(vr,vpsi,Zcp,Gamma_r,m,polar_out=polar_out)
     return u1,u2,u3 # ux,uy,uz OR ur,upsi,uz
 
 def svcs_tang_u(Xcp,Ycp,Zcp,gamma_t,R,m,Xcyl,Ycyl,Zcyl,ntheta=180):
@@ -296,16 +296,41 @@ def svcs_tang_u(Xcp,Ycp,Zcp,gamma_t,R,m,Xcyl,Ycyl,Zcyl,ntheta=180):
     uy = np.zeros(Xcp.shape)
     uz = np.zeros(Xcp.shape)
     nCyl,nr = R.shape
+    print('Tang.  (skewed)   ',end='')
     for i in np.arange(nCyl):
+        Xcp0,Ycp0,Zcp0=Xcp-Xcyl[i],Ycp-Ycyl[i],Zcp-Zcyl[i]
         for j in np.arange(nr):
             print('.',end='')
             if np.abs(gamma_t[i,j]) > 0:
-                ux1,uy1,uz1,_,_ = svc_tang_u(Xcp-Xcyl[i],Ycp-Ycyl[i],Zcp-Zcyl[i],gamma_t[i,j],R[i,j],m[i,j],ntheta=ntheta,polar_out=False)
+                ux1,uy1,uz1 = svc_tang_u(Xcp0,Ycp0,Zcp0,gamma_t[i,j],R[i,j],m[i,j],ntheta=ntheta,polar_out=False)
                 ux = ux + ux1
                 uy = uy + uy1
                 uz = uz + uz1
     print('')
     return ux,uy,uz
+
+def svcs_longi_u(Xcp,Ycp,Zcp,gamma_l,R,m,Xcyl,Ycyl,Zcyl,ntheta=180):
+    """ See svcs_tang_u """ 
+    Xcp=np.asarray(Xcp)
+    Ycp=np.asarray(Ycp)
+    Zcp=np.asarray(Zcp)
+    ux = np.zeros(Xcp.shape)
+    uy = np.zeros(Xcp.shape)
+    uz = np.zeros(Xcp.shape)
+    nCyl,nr = R.shape
+    print('Longi. (skewed)   ',end='')
+    for i in np.arange(nCyl):
+        Xcp0,Ycp0,Zcp0=Xcp-Xcyl[i],Ycp-Ycyl[i],Zcp-Zcyl[i]
+        for j in np.arange(nr):
+            print('.',end='')
+            if np.abs(gamma_l[i,j]) > 0:
+                ux1,uy1,uz1 = svc_longi_u(Xcp0,Ycp0,Zcp0,gamma_l[i,j],R[i,j],m[i,j],ntheta=ntheta,polar_out=False)
+                ux = ux + ux1
+                uy = uy + uy1
+                uz = uz + uz1
+    print('')
+    return ux,uy,uz
+
 
 
 # --------------------------------------------------------------------------------}

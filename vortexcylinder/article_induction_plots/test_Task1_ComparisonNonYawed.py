@@ -11,7 +11,7 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 # --- Local
-from vortexcylinder.VortexCylinder import cylinder_tang_semi_inf_u
+from vortexcylinder.VortexCylinder import vc_tang_u
 
 def main(test=False):
     if test:
@@ -36,7 +36,7 @@ def main(test=False):
         Zcp=np.linspace(ZMIN,ZMAX,nZ)
         Xcp=Zcp*0
         Ycp=Zcp*0
-        ur,uz=cylinder_tang_semi_inf_u(Xcp,Ycp,Zcp,gamma_t,R)
+        ur,uz=vc_tang_u(Xcp,Ycp,Zcp,gamma_t,R)
         ax.plot(Zcp/R,(uz+U0)/U0,label='CT = {}'.format(CT0))
     ax.set_xlabel('z/R [-]')
     ax.set_ylabel('U/U0 [-]')
@@ -53,7 +53,7 @@ def main(test=False):
         Xcp=np.linspace(0,2*R,nZ)
         Zcp=Xcp*0
         Ycp=Xcp*0
-        ur,uz=cylinder_tang_semi_inf_u(Xcp,Ycp,Zcp,gamma_t,R)
+        ur,uz=vc_tang_u(Xcp,Ycp,Zcp,gamma_t,R)
         ax.plot(Xcp/R,(uz+U0)/U0,label='u_z, CT = {}'.format(CT0))
         ax.plot(Xcp/R,ur        ,label='u_r, CT = {}'.format(CT0))
     ax.set_xlabel('r/R [-]')
@@ -70,7 +70,7 @@ def main(test=False):
     x=np.linspace(-2*R,2*R,nX)
     Z,X=np.meshgrid(z,x)
     Y=Z*0;
-    ur,uz = cylinder_tang_semi_inf_u(X,Y,Z,gamma_t,R)
+    ur,uz = vc_tang_u(X,Y,Z,gamma_t,R)
 
     # --- Plot the contours of axial induction
     levels=[0.5,0.6,0.7,0.8,0.9,0.95,0.98,0.99,1.01]

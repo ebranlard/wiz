@@ -14,22 +14,25 @@ import numpy.matlib
 # --- Local
 try:
     from .elliptic import ellipticPiCarlson, ellipe, ellipk
+    from .VortexLine import vl_semiinf_straight_u
 except:
     try:
         from vortexcylinder.elliptic import ellipticPiCarlson, ellipe, ellipk
+        from vortexcylinder.VortexLine import vl_semiinf_straight_u
     except:
         from elliptic import ellipticPiCarlson, ellipe, ellipk
+        from VortexLine import vl_semiinf_straight_u
 
 
 
-def cylinder_tang_semi_inf_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,polar_out=True,epsilon=0):
+def vc_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,polar_out=True,epsilon=0):
     """ Induced velocity from a semi infinite cylinder extending along the z axis, starting at z=0
     INPUTS:
       Xcp,Ycp,Zcp: vector or matrix of control points coordinates
       gamma_t: tangential vorticity sheet strength of the cylinder
       R: cylinder radius
       epsilon : Regularization parameter, e.g. epsilon=0.0001*R
-    Reference: [1]"""
+    Reference: [1,2],  in particular, equations (7-8) from [1]"""
     EPSILON_AXIS=1e-7; # relative threshold for using axis formula
 
     # --- Main corpus
@@ -95,9 +98,55 @@ def cylinder_tang_semi_inf_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,polar_out=True,epsilon=0
         uy=ur*np.sin(psi)
         return ux,uy,uz
 
+def vc_longi_u_polar(vr,vpsi,vz,gamma_l=-1,R=1,polar_out=False):
+    """ 
+    Induced velocity from a semi infinite cylinder of longitudinal vorticity. (particular case of skewed formula)
+    Takes polar coordinates as inputs, returns velocity either in Cartesian (default) or polar.
+    INPUTS:
+       vr,vpsi,vz : control points in polar coordinates, may be of any shape
+       gamma_t    : tangential vorticity of the vortex sheet (circulation per unit of length oriented along psi). (for WT rotating positively along psi , gamma psi is negative)
+       R          : radius of cylinder
+       ntheta    : number of points used for integration
+    Reference: [1,2],  in particular, equation (21) from [1]
+    """
+    EPSILON_AXIS=1e-7; # relative threshold for using axis formula
+    # Flattening, and dimensionless!
+    shape_in=vr.shape
+    m     = 4*vr*R/((vr+R)**2+vz**2)
+    m0    = 4*vr*R/((vr+R)**2)
+    K     = ellipk(m)
+    PI    = ellipticPiCarlson(m0,m)
+    Ar    = (vr-R+np.abs(R-vr))/(2*np.abs(R-vr))
+    Az    = vz*np.sqrt(m)/(2*np.pi*np.sqrt(vr*R))*(K-(R-vr)/(R+vr)*PI)
+    u_psi = gamma_l/2*R/vr*(Ar +Az)
+    u_z = np.zeros(shape_in)
+    if polar_out:
+        u_r = np.zeros(shape_in)
+        return (u_r,u_psi,u_z)
+    else:
+        u_x   = -u_psi*np.sin(vpsi)
+        u_y   =  u_psi*np.cos(vpsi)
+        return (u_x,u_y,u_z)
+
+def vc_longi_u(Xcp,Ycp,Zcp,gamma_l=-1,R=1,polar_out=False):
+    """ Induced velocity from a straight semi infinite cylinder of longitudinal vorticity.
+    The rotor is in the plane z=0.
+    INPUTS:
+       Xcp,Ycp,Zcp: vector or matrix of control points Cartesian Coordinates
+       gamma_l    : longitudinal vorticity of the vortex sheet (circulation per unit of length oriented along zeta), negative for a WT
+       R          : radius of cylinder
+       ntheta     : number of points used for integration
+    Reference: [1,2]"""
+    vr, vpsi = np.sqrt(Xcp**2+Ycp**2), np.arctan2(Ycp,Xcp) # polar coords
+    u1,u2,u3=vc_longi_u_polar(vr,vpsi,Zcp,gamma_l,R,polar_out=polar_out)
+    return u1,u2,u3 # ux,uy,uz OR ur,upsi,uz
+
+def vc_root_u(Xcp,Ycp,Zcp,Gamma_r=-1,polar_out=False):
+    return vl_semiinf_straight_u(Xcp,Ycp,Zcp,Gamma_r=Gamma_r,polar_out=polar_out)
+
 def cylinder_tang_semi_inf_u_raw(Xcp,Ycp,Zcp,gamma_t=-1,R=1):
     """ Induced velocity from a semi infinite cylinder extending along the z axis, starting at z=0
-    This routine has no special handling, see cylinder_tang_semi_inf_u for Documentation
+    This routine has no special handling, see vc_tang_u for Documentation
     """
     r = np.sqrt(Xcp ** 2 + Ycp ** 2)
     z = Zcp
@@ -115,7 +164,7 @@ def cylinder_tang_semi_inf_u_raw(Xcp,Ycp,Zcp,gamma_t=-1,R=1):
 
     return ur,uz
 
-def cylinders_tang_semi_inf_u(Xcp,Ycp,Zcp,gamma_t,R,Xcyl,Ycyl,Zcyl,epsilon=0):
+def vcs_tang_u(Xcp,Ycp,Zcp,gamma_t,R,Xcyl,Ycyl,Zcyl,epsilon=0):
     """ 
     Computes the velocity field for nCyl*nr cylinders, extending along z:
         nCyl: number of main cylinders
@@ -136,19 +185,41 @@ def cylinders_tang_semi_inf_u(Xcp,Ycp,Zcp,gamma_t,R,Xcyl,Ycyl,Zcyl,epsilon=0):
     ux = np.zeros(Xcp.shape)
     uy = np.zeros(Xcp.shape)
     uz = np.zeros(Xcp.shape)
-    
+    print('Tang.  (straight) ',end='')
     nCyl,nr = R.shape
     for i in np.arange(nCyl):
+        Xcp0,Ycp0,Zcp0=Xcp-Xcyl[i],Ycp-Ycyl[i],Zcp-Zcyl[i]
         for j in np.arange(nr):
-#             print('.',end='')
+            print('.',end='')
             if np.abs(gamma_t[i,j]) > 0:
-                ux1,uy1,uz1 = cylinder_tang_semi_inf_u(Xcp-Xcyl[i],Ycp-Ycyl[i],Zcp-Zcyl[i],gamma_t[i,j],R[i,j],polar_out=False,epsilon=epsilon)
+                ux1,uy1,uz1 = vc_tang_u(Xcp0,Ycp0,Zcp0,gamma_t[i,j],R[i,j],polar_out=False,epsilon=epsilon)
                 ux = ux + ux1
                 uy = uy + uy1
                 uz = uz + uz1
-#     print('')
+    print('')
     return ux,uy,uz
     
+def vcs_longi_u(Xcp,Ycp,Zcp,gamma_l,R,Xcyl,Ycyl,Zcyl):
+    """ see vcs_tang_u """ 
+    Xcp=np.asarray(Xcp)
+    Ycp=np.asarray(Ycp)
+    Zcp=np.asarray(Zcp)
+    ux = np.zeros(Xcp.shape)
+    uy = np.zeros(Xcp.shape)
+    uz = np.zeros(Xcp.shape)
+    nCyl,nr = R.shape
+    print('Longi. (straight) ',end='')
+    for i in np.arange(nCyl):
+        Xcp0,Ycp0,Zcp0=Xcp-Xcyl[i],Ycp-Ycyl[i],Zcp-Zcyl[i]
+        for j in np.arange(nr):
+            print('.',end='')
+            if np.abs(gamma_l[i,j]) > 0:
+                ux1,uy1,uz1 = vc_longi_u(Xcp0,Ycp0,Zcp0,gamma_l[i,j],R[i,j],polar_out=False)
+                ux = ux + ux1
+                uy = uy + uy1
+                uz = uz + uz1
+    print('')
+    return ux,uy,uz
 
 def cylinder_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,z1=-2,z2=2,polar_out=True,epsilon=0):
     """ Induced velocity from a finite cylinder extending along the z axis, extending between z1 and z2
@@ -211,27 +282,27 @@ def cylinder_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,z1=-2,z2=2,polar_out=True,epsilon
 
 
 # --------------------------------------------------------------------------------}
-# --- TEST 
+# --- TESTS
 # --------------------------------------------------------------------------------{
 class TestCylinder(unittest.TestCase):
     def test_VC_singularities(self):
         import warnings
         warnings.filterwarnings('error')
         # ---- r=1, z=0
-        ur,uz=cylinder_tang_semi_inf_u(1,0,0)
+        ur,uz=vc_tang_u(1,0,0)
         np.testing.assert_almost_equal(uz,-1/4)
-        ur,uz=cylinder_tang_semi_inf_u(1,0,0,epsilon=1e-1)
+        ur,uz=vc_tang_u(1,0,0,epsilon=1e-1)
         np.testing.assert_almost_equal(uz,-1/4)
         # ---- r=0, z=0
-        ur,uz=cylinder_tang_semi_inf_u(0,0,0)
+        ur,uz=vc_tang_u(0,0,0)
         np.testing.assert_almost_equal(uz,-1/2)
-        ur,uz=cylinder_tang_semi_inf_u(0,0,0,epsilon=1e-1)
+        ur,uz=vc_tang_u(0,0,0,epsilon=1e-1)
         np.testing.assert_almost_equal(uz,-1/2)
 
         # --- At r=1, z=-1, PI=infinity
-        ur,uz   = cylinder_tang_semi_inf_u(1,0,-1)
+        ur,uz   = vc_tang_u(1,0,-1)
         np.testing.assert_almost_equal(uz,-0.08934,decimal=4)
-        ure,uze = cylinder_tang_semi_inf_u(1,0,-1,epsilon = 1e-1)
+        ure,uze = vc_tang_u(1,0,-1,epsilon = 1e-1)
         np.testing.assert_almost_equal(uz,uze)
         np.testing.assert_almost_equal(ur,ure)
 
@@ -240,17 +311,17 @@ class TestCylinder(unittest.TestCase):
         r=np.array([0,0.99,1,1.01])
         # --- Regularization should have no impact when z<<-epsilon
         z=r*0-1
-        ur , uz  = cylinder_tang_semi_inf_u(r,0,z)
-        ure, uze = cylinder_tang_semi_inf_u(r,0,z,epsilon=1e-1)
+        ur , uz  = vc_tang_u(r,0,z)
+        ure, uze = vc_tang_u(r,0,z,epsilon=1e-1)
         np.testing.assert_almost_equal(uz,uze)
         np.testing.assert_almost_equal(ur,ure)
         # --- Regularization at the rotor
 #         r=np.linspace(0,2,200)
 #         z=r*0-0.000001
-#         ur , uz  = cylinder_tang_semi_inf_u(r,0,z)
-#         ure, uze = cylinder_tang_semi_inf_u(r,0,z,epsilon=1e-1)
+#         ur , uz  = vc_tang_u(r,0,z)
+#         ure, uze = vc_tang_u(r,0,z,epsilon=1e-1)
 #         z0=r*0
-#         ure0, uze0= cylinder_tang_semi_inf_u(r,0,z0,epsilon=1e-1)
+#         ure0, uze0= vc_tang_u(r,0,z0,epsilon=1e-1)
 #         import matplotlib.pyplot as plt
 #         plt.figure()
 #         plt.plot(r,uz)
@@ -290,8 +361,8 @@ class TestCylinder(unittest.TestCase):
         vR[0,0]      = R
         vgamma_t[0,0]= gamma_t
 
-        ux,uy,uz             = cylinders_tang_semi_inf_u(X,Y,Z,vgamma_t,vR,Xcyl,Ycyl,Zcyl)
-        ux_ref,uy_ref,uz_ref = cylinder_tang_semi_inf_u(X,Y,Z,gamma_t,R,polar_out=False)
+        ux,uy,uz             = vcs_tang_u(X,Y,Z,vgamma_t,vR,Xcyl,Ycyl,Zcyl)
+        ux_ref,uy_ref,uz_ref = vc_tang_u(X,Y,Z,gamma_t,R,polar_out=False)
         np.testing.assert_almost_equal(ux,ux_ref)
         np.testing.assert_almost_equal(uz,uz_ref)
 
@@ -305,7 +376,7 @@ class TestCylinder(unittest.TestCase):
         vR[:,0]      = R
         vgamma_t[0,0]= gamma_t
         vgamma_t[1,0]= -gamma_t
-        ux,uy,uz             = cylinders_tang_semi_inf_u(X,Y,Z,vgamma_t,vR,Xcyl,Ycyl,Zcyl)
+        ux,uy,uz             = vcs_tang_u(X,Y,Z,vgamma_t,vR,Xcyl,Ycyl,Zcyl)
         np.testing.assert_almost_equal(ux,ux*0)
         np.testing.assert_almost_equal(uz,uz*0)
 
@@ -321,7 +392,7 @@ class TestCylinder(unittest.TestCase):
 #         vR[nCyl-1,0]       = R
 #         vgamma_t[0,0]      = gamma_t
 #         vgamma_t[nCyl-1,0] = gamma_t
-#         ux,uy,uz=cylinders_tang_semi_inf_u(X,Y,Z,vgamma_t,vR,Xcyl,Ycyl,Zcyl,epsilon=0e-1*R)
+#         ux,uy,uz=vcs_tang_u(X,Y,Z,vgamma_t,vR,Xcyl,Ycyl,Zcyl,epsilon=0e-1*R)
 #         uz=uz+U0 #<<<<<<<<<<<<<<<<<<
 # 
 #         # --- Plot the contours of axial induction
@@ -364,7 +435,7 @@ class TestCylinder(unittest.TestCase):
         z=np.linspace(-2*R,2*R,20)
         x=z*0
         y=z*0
-        ur,uz=cylinder_tang_semi_inf_u(x,y,z,gamma_t,R)
+        ur,uz=vc_tang_u(x,y,z,gamma_t,R)
         uz_ref = gamma_t/2*(1 + z/np.sqrt(z**2 + R**2))
         np.testing.assert_almost_equal(uz, uz_ref,decimal=7)
         np.testing.assert_almost_equal(ur, uz*0,decimal=7)
@@ -381,7 +452,7 @@ class TestCylinder(unittest.TestCase):
         z=np.linspace(-2*R,2*R,21)
         x=z*0+ 0.1*R
         y=z*0
-        ur,uz=cylinder_tang_semi_inf_u(x,y,z,gamma_t,R)
+        ur,uz=vc_tang_u(x,y,z,gamma_t,R)
         uz_ref = gamma_t/2*(1 + z/np.sqrt(z**2 + R**2))
         ur_ref =-gamma_t/4*(x*R**2/(z**2 + R**2)**(3/2))
         np.testing.assert_almost_equal(ur, ur_ref,decimal=3)
@@ -401,7 +472,7 @@ class TestCylinder(unittest.TestCase):
         x=np.linspace(-(R-eps), R-eps, 10)
         y=x*0
         z=x*0
-        ur,uz=cylinder_tang_semi_inf_u(x,y,z,gamma_t,R)
+        ur,uz=vc_tang_u(x,y,z,gamma_t,R)
         uz_ref=[gamma_t/2]*len(x)
         np.testing.assert_almost_equal(uz,uz_ref,decimal=7)
 
@@ -412,7 +483,7 @@ class TestCylinder(unittest.TestCase):
         x=np.linspace(-(R-eps), R-eps, 10)
         y=x*0
         z=x*0 + 10**4*R
-        ur,uz=cylinder_tang_semi_inf_u(x,y,z,gamma_t,R)
+        ur,uz=vc_tang_u(x,y,z,gamma_t,R)
         uz_ref,ur_ref = [gamma_t]*len(x) ,  x*0
         np.testing.assert_almost_equal(uz,uz_ref,decimal=5)
         np.testing.assert_almost_equal(ur,ur_ref,decimal=7)
@@ -441,7 +512,7 @@ class TestCylinder(unittest.TestCase):
         Yr          = 0*Zr
 
         def compare(x,y,z,dec):
-            ur,uz      = cylinder_tang_semi_inf_u(x,y,z,gamma_t,R)
+            ur,uz      = vc_tang_u(x,y,z,gamma_t,R)
             ur_r, uz_r = rings_u(x,y,z,vGamma_r,vR_r,Xr,Yr,Zr)
             np.testing.assert_almost_equal(uz,uz_r,decimal=dec)
             np.testing.assert_almost_equal(ur,ur_r,decimal=dec)

@@ -16,11 +16,17 @@ import scipy.optimize as sciopt
 import scipy.integrate as sciint
 
 
-def Ct_const_cutoff(CT0,r_bar_cut,vr_bar):
-    """ Returns an almost constant Ct, linearly dropping to zero below a cut-off radius"""
+def Ct_const_cutoff(CT0,r_bar_cut,vr_bar,r_bar_tip=None):
+    """ Returns an almost constant Ct, 
+       linearly dropping to zero below a cut-off radius
+       linearly dropping to zero after a tip radius
+    """
     Ct=np.ones(vr_bar.shape)*CT0
     I=vr_bar<r_bar_cut
-    Ct[I]=vr_bar[I]*CT0/r_bar_cut
+    Ct[I]=CT0*vr_bar[I]/r_bar_cut
+    if r_bar_tip is not None:
+        I=vr_bar>r_bar_tip
+        Ct[I]=CT0*(1-(vr_bar[I]-r_bar_tip)/(1-r_bar_tip))
     return Ct 
 
 
@@ -264,8 +270,8 @@ def WakeVorticityFromCirculation_Discr(r_cp,Gamma_cp,R,U0,Omega,nB,bSwirl,method
             gamma_l     =   Gamma_tilde/(2*np.pi*r_cp)
             Gamma_r     = - Gamma_cp[0]
         else:
-            gamma_l     = 0
-            Gamma_r     = 0
+            gamma_l     = None
+            Gamma_r     = None
 
         return gamma_t,gamma_l,Gamma_r, misc
 
@@ -281,9 +287,9 @@ def WakeVorticityFromCt(r,Ct,R,U0,Omega):
     bSwirl=Lambda<20
     vk=CirculationFromPrescribedCt(r/R,Ct,Lambda,bSwirl)
     Gamma = vk*np.pi*U0**2/Omega
-    return WakeVorticityFromCirculation_Discr(r,Gamma_cp,R,U0,Omega,nB=1,bSwirl=bSwirl)
+    return WakeVorticityFromCirculation_Discr(r,Gamma,R,U0,Omega,nB=1,bSwirl=bSwirl)
 
-def WakeVorticityFromCirculation(r,Gamma,R,U0,Omega):
+def WakeVorticityFromGamma(r,Gamma,R,U0,Omega):
     """ Returns the wake vorticity intensity for a given circulation """
     Lambda=Omega*R/U0
     bSwirl=Lambda<20

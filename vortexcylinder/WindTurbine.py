@@ -6,16 +6,23 @@ import unittest
 import numpy as np
 # --- Local
 try:
-    from .VortexCylinder import cylinder_tang_semi_inf_u, cylinders_tang_semi_inf_u
-    from .VortexCylinderSkewed import svc_tang_u, svc_longi_u, svc_root_u
+    from .VortexCylinder import vc_tang_u, vc_longi_u, vc_root_u, vcs_tang_u, vcs_longi_u
+    from .VortexCylinderSkewed import svc_tang_u, svc_longi_u, svc_root_u, svcs_tang_u, svcs_longi_u
+    from .Solver import Ct_const_cutoff, WakeVorticityFromCt, WakeVorticityFromGamma
 except:
     try:
-        from vortexcylinder.VortexCylinder import cylinder_tang_semi_inf_u, cylinders_tang_semi_inf_u
-        from vortexcylinder.VortexCylinderSkewed import svc_tang_u, svc_longi_u, svc_root_u
+        from vortexcylinder.VortexCylinder import vc_tang_u, vc_longi_u, vc_root_u, vcs_tang_u, vcs_longi_u
+        from vortexcylinder.VortexCylinderSkewed import svc_tang_u, svc_longi_u, svc_root_u, svcs_tang_u, svcs_longi_u
+        from vortexcylinder.Solver import Ct_const_cutoff, WakeVorticityFromCt, WakeVorticityFromGamma
     except:
-        from VortexCylinder import cylinder_tang_semi_inf_u, cylinders_tang_semi_inf_u
-        from VortexCylinderSkewed import svc_tang_u, svc_longi_u, svc_root_u
-vc_tang_u=cylinder_tang_semi_inf_u
+        from VortexCylinder import vc_tang_u,  vc_longi_u, vcs_tang_u, vc_root_u, vcs_longi_u
+        from VortexCylinderSkewed import svc_tang_u, svc_longi_u, svc_root_u, svcs_tang_u, svcs_longi_u
+        from Solver import Ct_const_cutoff, WakeVorticityFromCt, WakeVorticityFromGamma
+
+try:
+    from pybra.clean_exceptions import *
+except:
+    pass
 
 
 # --------------------------------------------------------------------------------}
@@ -60,7 +67,7 @@ def transform(T_a2b,Xa,Ya,Za):
 # --- Main Class 
 # --------------------------------------------------------------------------------{
 class WindTurbine:
-    def __init__(self,r_hub=[0,0,0],e_shaft_yaw0=[0,0,1],e_vert=[0,1,0],U0=[0,0,10],Ct=0.6,lambda_r=7,R=65,name=''):
+    def __init__(self,R,r_hub=[0,0,0],e_shaft_yaw0=[0,0,1],e_vert=[0,1,0],U0=[0,0,10],Ct=None,Lambda=None,name=''):
         """ 
          - e_vert: verticla vector, about which yawing is done
         """
@@ -69,6 +76,11 @@ class WindTurbine:
         self.update_wind(U0)
         self.name=name
         self.R=R
+        self.r=None
+        self.gamma_t=None
+        self.gamma_t=None
+        self.Gamma_r=None
+        self.Lambda=Lambda
 
     def set_yaw0_coord(self,e_shaft_yaw0,e_vert):
         self.e_shaft_g = np.asarray(e_shaft_yaw0).ravel().reshape(3,1)
@@ -100,14 +112,46 @@ class WindTurbine:
     def update_wind(self,U0_g):
         self.U0_g = np.asarray(U0_g).ravel().reshape(3,1)
 
-    def update_loading(self,r=None,Ct=None,Gamma=None,Omega=None):
+    def update_loading(self,r=None,Ct=None,Gamma=None,Lambda=None,nCyl=None):
         U0=np.linalg.norm(self.U0_g)
+
+        # --- Reinterpolating loading to number of cylinders if needed
+        if nCyl is not None:
+            if nCyl==1:
+                vr0= np.array([0.995*self.R])
+                if Ct is not None:
+                    Ct =np.mean(Ct)
+                if Gamma is not None:
+                    Gamma =np.mean(Gamma)
+            else:
+                vr0= np.linspace(0.005,0.995,nCyl)*self.R
+                if Ct is not None:
+                    Ct = np.interp(vr0,r,Ct)
+                else:
+                    Gamma = np.interp(vr0,r,Gamma)
+            r=vr0
+
+        # Updating Lambda
+        if Lambda is None:
+            Lambda=self.Lambda
+        if Lambda is None:
+            raise Exception('Provide `Lambda` for update_loading. (Note: `Lambda=np.Inf` supported) ')
+        Omega = Lambda*U0/self.R
+
+        # Computing and storing gamma distribution and loading
         if Ct is not None:
-            gamma_t,gamma_l,Gamma_r,misc=WakeVorticityFromCt(r,Ct,self.R,U0,Omega)
+            self.gamma_t,self.gamma_l,self.Gamma_r,misc=WakeVorticityFromCt(r,Ct,self.R,U0,Omega)
         elif Gamma is not None:
-            gamma_t,gamma_l,Gamma_r,misc=WakeVorticityFromGamma(r,Ct,self.R,U0,Omega)
+            self.gamma_t,self.gamma_l,self.Gamma_r,misc=WakeVorticityFromGamma(r,Ct,self.R,U0,Omega)
         else:
             raise Exception('Unknown loading spec')
+        #print('gamma_t    ',self.gamma_t)
+        #print('gamma_l    ',self.gamma_l)
+        #print('Gamma_r    ',self.Gamma_r)
+        #print('Gamma_/2piR',-self.Gamma_r/(2*np.pi*self.R))
+        self.Lambda=Lambda
+        self.r=r
+        self.Ct=Ct
 
     @property
     def yaw_wind(self):
@@ -152,33 +196,87 @@ class WindTurbine:
     #    return np.arcsin(shaft_vert)*180/np.pi
 
     def rotor_disk_points(self):
-        nP=10
+        nP=100
         points=np.zeros((3,nP))
         theta=np.linspace(0,2*np.pi,nP)
         e_r = self.R*orth_vect(self.e_shaft_g)
         for i,t in enumerate(theta):
             T=RotMat_AxisAngle(self.e_shaft_g,t)
-            points[:,i]= np.dot(T,e_r).ravel()
+            points[:,i]= self.r_hub.ravel()+np.dot(T,e_r).ravel()
         return points
 
 
     
-    def compute_u(self,Xg,Yg,Zg,only_ind=False):
+    def compute_u(self,Xg,Yg,Zg,only_ind=False, longi=True, tang=True, root=True):
         # Transformtion from cylinder to global
         T_c2g=np.dot(self.T_wt2g,self.T_c2wt)
         Xc,Yc,Zc = transform_T(T_c2g, Xg,Yg,Zg)
         # Detecting whether our vertical convention match, and define chi
         e_vert_c = np.dot(T_c2g.T , self.e_vert_g)
         self.chi= np.sign(e_vert_c.ravel()[1])* (self.yaw_wind-self.yaw_pos)
-        print(self.e_vert_g)
-        print(e_vert_c)
-        print('chi',self.chi*180/np.pi)
-        gamma_t=-6 # TODO TODO
-        if np.abs(self.chi)>1e-7:
-            m=np.tan(self.chi)
-            uxc,uyc,uzc = svc_tang_u(Xc,Yc,Zc,gamma_t=gamma_t,R=self.R,m=m,polar_out=False)
+        if self.gamma_t is None:
+            raise Exception('Please set loading with `update_loading` before calling `compute_u`')
+
+        uxc = np.zeros(Xg.shape)
+        uyc = np.zeros(Xg.shape)
+        uzc = np.zeros(Xg.shape)
+        m=np.tan(self.chi)
+        Xcyl, Ycyl, Zcyl = transform_T(T_c2g,np.array([self.r_hub[0]]), np.array([self.r_hub[1]]),  np.array([self.r_hub[2]]))
+
+        if root and  (self.Gamma_r is not None) and self.Gamma_r!=0:
+            if np.abs(self.chi)>1e-7:
+                uxc0,uyc0,uzc0 = svc_root_u(Xc,Yc,Zc,Gamma_r=self.Gamma_r,m=m,polar_out=False)
+            else:
+                uxc0,uyc0,uzc0 =  vc_root_u(Xc,Yc,Zc,Gamma_r=self.Gamma_r,polar_out=False)
+            uxc += uxc0
+            uyc += uyc0
+            uzc += uzc0
+
+
+        if len(self.gamma_t)==1:
+            # translate control points
+            Xc,Yc,Zc=Xc-Xcyl[0],Yc-Ycyl[0],Zc-Zcyl[0]
+            if tang and (self.gamma_t!=0):
+                if np.abs(self.chi)>1e-7:
+                    uxc0,uyc0,uzc0 = svc_tang_u(Xc,Yc,Zc,gamma_t=self.gamma_t,R=self.R,m=m,polar_out=False)
+                else:
+                    uxc0,uyc0,uzc0 = vc_tang_u (Xc,Yc,Zc,gamma_t=self.gamma_t,R=self.R    ,polar_out=False)
+                uxc += uxc0
+                uyc += uyc0
+                uzc += uzc0
+            if longi and (self.gamma_l is not None) and self.gamma_l!=0 :
+                if np.abs(self.chi)>1e-7:
+                    uxc0,uyc0,uzc0 = svc_longi_u(Xc,Yc,Zc,gamma_l=self.gamma_l,R=self.R,m=m,polar_out=False)
+                else:
+                    uxc0,uyc0,uzc0 = vc_longi_u(Xc,Yc,Zc,gamma_l=self.gamma_l,R=self.R    ,polar_out=False)
+                uxc += uxc0
+                uyc += uyc0
+                uzc += uzc0
         else:
-            uxc,uyc,uzc = vc_tang_u (Xc,Yc,Zc,gamma_t=gamma_t,R=self.R    ,polar_out=False)
+            nr   = len(self.r)
+            nWT = 1
+            # Control points are directly translated by routine
+            gamma_t = self.gamma_t.reshape((nWT,nr))
+            if self.gamma_l is not None:
+                gamma_l = self.gamma_l.reshape((nWT,nr))
+            vR      = self.r.reshape((nWT,nr))
+            vm       = m* np.ones((nWT,nr))
+            if tang:
+                if np.abs(self.chi)>1e-7:
+                    uxc0,uyc0,uzc0 = svcs_tang_u(Xc,Yc,Zc,gamma_t=gamma_t,R=vR,m=vm,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl)
+                else:
+                    uxc0,uyc0,uzc0 = vcs_tang_u (Xc,Yc,Zc,gamma_t=gamma_t,R=vR    ,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl)
+                uxc += uxc0
+                uyc += uyc0
+                uzc += uzc0
+            if longi and (self.gamma_l is not None):
+                if np.abs(self.chi)>1e-7:
+                    uxc0,uyc0,uzc0 = svcs_longi_u(Xc,Yc,Zc,gamma_l=gamma_l,R=vR,m=vm,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl)
+                else:
+                    uxc0,uyc0,uzc0 = vcs_longi_u (Xc,Yc,Zc,gamma_l=gamma_l,R=vR      ,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl)
+                uxc += uxc0
+                uyc += uyc0
+                uzc += uzc0
 
         # Back to global
         uxg,uyg,uzg = transform(T_c2g, uxc, uyc, uzc)
@@ -222,55 +320,98 @@ class TestWindTurbine(unittest.TestCase):
         R=65
         h_hub=0
 
-        bSwirl    = True
         U0        = 10
-        r_bar_cut = 0.11
-        Lambda    = 6
-        CT0       = 0.95
-        nCyl      = 50
-        Omega = Lambda * U0 / R
+        r_bar_cut = 0.21
+        r_bar_tip = 0.81
+        Lambda    = 10
+        CT0       = 0.85
+        nCyl      = 20
 
-        if nCyl==1:
-            vr_bar = np.array([0.995])
-        else:
-            vr_bar = np.linspace(0.005,0.995,nCyl)
-        # --- Cutting CT close to the root
-        Ct_AD = Ct_const_cutoff(CT0,r_bar_cut,vr_bar)
-
-        WT=WindTurbine(R=R,e_shaft_yaw0=[0,0,1],e_vert=[0,1,0])
         #yaw=np.linspace(0,2*np.pi,9)
+        yaw=np.array([0])*np.pi/180
+        yaw_off=np.array([30.00])*np.pi/180
+        # Flow field options
+        z0 = 2*R
+        nx=40
+        nz=41
+        ny=42
+        clim   = [6,12]
+        clim   = None
+        clim_u = [7,12]
+        clim_u = None
+        root=False
+        longi=True
+        tang=True
 
 
+        # --- Cutting CT close to the root
+        vr_bar = np.linspace(0,1,100)
+        Ct_AD = Ct_const_cutoff(CT0,r_bar_cut,vr_bar,r_bar_tip)
 
-        #for y in yaw:
-        #    WT.update_yaw_pos( y - np.pi/6)
-        #    WT.update_wind([10*np.sin(y),0,10*np.cos(y)])
-        #    WT.update_loading(r=vr_bar*R,Ct=Ct_AD)
+        WT=WindTurbine(R=R,e_shaft_yaw0=[0,0,1],e_vert=[0,1,0],r_hub=[-0*R,0,0*R])
 
-        #    # --- Flow field and speed
-        #    nx=40
-        #    nz=41
-        #    x = np.linspace(-4*R,4*R,nx)
-        #    z = np.linspace(-4*R,4*R,nz)
-        #    [X,Z]=np.meshgrid(x,z)
-        #    Y=Z*0+h_hub
-        #    ux,uy,uz = WT.compute_u(X,Y,Z)
+        for y,y_off in zip(yaw,yaw_off):
+            WT.update_yaw_pos( y - y_off)
+            WT.update_wind([10*np.sin(y),0,10*np.cos(y)])
+            WT.update_loading(r=vr_bar*R, Ct=Ct_AD, Lambda=Lambda,nCyl=nCyl)
 
-        #    fig=plt.figure()
-        #    ax=fig.add_subplot(111)
-        #    Speed=np.sqrt(uz**2+ux**2)
-        #    im=ax.contourf(Z/R,X/R,Speed,levels=30)
-        #    Rotor=WT.rotor_disk_points()
-        #    ax.plot(Rotor[2,:]/R,Rotor[0,:]/R,'k--')
-        #    cb=fig.colorbar(im)
-        #    sp=ax.streamplot(z/R,x/R,uz.T,ux.T,color='k',linewidth=0.7,density=2)
-        #    ax.set_xlabel('z/R [-]')
-        #    ax.set_ylabel('x/R [-]')
-        #    deg=180/np.pi
-        #    ax.set_title('yaw_pos = {:.1f} - yaw_wind={:.1f} - chi={:.1f} - yaw_err={:.1f}'.format(WT.yaw_pos*deg,WT.yaw_wind*deg,WT.chi*deg,WT.yaw_error*deg))
+            # --- Flow field and speed in top plane
+            x = np.linspace(-4*R,4*R,nx)
+            z = np.linspace(-4*R,4*R,nz)
+            [X,Z]=np.meshgrid(x,z)
+            Y=Z*0+h_hub
+            ux,uy,uz = WT.compute_u(X,Y,Z,root=root,longi=longi,tang=tang)
+
+            #fig=plt.figure()
+            #ax=fig.add_subplot(111)
+            #Speed=np.sqrt(uz**2+ux**2+uy**2)
+            #if clim is not None:
+            #    lev=np.linspace(clim[0],clim[1],30)
+            #else:
+            #    lev=30
+            #im=ax.contourf(Z/R,X/R,Speed,levels=lev)
+            #Rotor=WT.rotor_disk_points()
+            #ax.plot(Rotor[2,:]/R,Rotor[0,:]/R,'k--')
+            #cb=fig.colorbar(im)
+            #if clim is not None:
+            #    cb.set_clim(clim)
+            #sp=ax.streamplot(z/R,x/R,uz.T,ux.T,color='k',linewidth=0.7,density=2)
+            #ax.set_xlabel('z/R [-]')
+            #ax.set_ylabel('x/R [-]')
+            #deg=180/np.pi
+            #ax.set_title('yaw_pos = {:.1f} - yaw_wind={:.1f} - chi={:.1f} - yaw_err={:.1f}'.format(WT.yaw_pos*deg,WT.yaw_wind*deg,WT.chi*deg,WT.yaw_error*deg))
 
 
-        #    plt.show()
+            ## --- Flow field and speed in cross plane
+            #x = np.linspace(-2*R,2*R,nx)+WT.r_hub[0]
+            #y = np.linspace(-2*R,2*R,ny)+WT.r_hub[1]
+            #[X,Y]=np.meshgrid(x,y)
+            #Z=X*0+z0
+            #ux,uy,uz = WT.compute_u(X,Y,Z,root=root,longi=longi,tang=tang)
+
+            #fig=plt.figure()
+            #ax=fig.add_subplot(111)
+            ##Speed=np.sqrt(uz**2+ux**2+uy**2)
+            #Speed=np.sqrt(uz**2)
+#           #  Speed=np.sqrt(ux**2+uy**2)
+            #if clim_u is not None:
+            #    lev=np.linspace(clim_u[0],clim_u[1],30)
+            #else:
+            #    lev=30
+            #im=ax.contourf((X-WT.r_hub[0])/R,(Y-WT.r_hub[1])/R,Speed,levels=lev)
+            #Rotor=WT.rotor_disk_points()
+            #ax.plot((Rotor[0,:]-WT.r_hub[0])/R,(Rotor[1,:]-WT.r_hub[1])/R,'k--')
+            #cb=fig.colorbar(im)
+#           #  if clim is not None:
+#           #      cb.set_clim(clim)
+            #sp=ax.streamplot((x-WT.r_hub[0])/R,(y-WT.r_hub[1])/R,ux,uy,color='k',linewidth=0.7,density=2)
+            #ax.set_xlabel('x/R [-]')
+            #ax.set_ylabel('y/R [-]')
+            #ax.set_xlim(np.array([np.max(x/R),np.min(x/R)])) # NOTE FLIPPED!
+            #deg=180/np.pi
+            #ax.set_title('yaw_pos = {:.1f} - yaw_wind={:.1f} - chi={:.1f} - yaw_err={:.1f}'.format(WT.yaw_pos*deg,WT.yaw_wind*deg,WT.chi*deg,WT.yaw_error*deg))
+
+#           #  plt.show()
 
 
         # --- Test in meteorological coord

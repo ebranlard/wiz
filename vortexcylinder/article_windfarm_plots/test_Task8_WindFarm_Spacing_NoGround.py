@@ -11,7 +11,7 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 # --- Local
-from vortexcylinder.VortexCylinder import cylinder_tang_semi_inf_u
+from vortexcylinder.VortexCylinder import vc_tang_u
 from vortexcylinder.WindFarm       import windfarm_gridlayout_CTconst
 
 

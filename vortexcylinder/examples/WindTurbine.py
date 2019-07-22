@@ -27,6 +27,7 @@ WT=WindTurbine(R=R,e_shaft_yaw0=[0,0,1],e_vert=[0,1,0])
 wd=0 # Wind direction
 YE=np.linspace(-np.pi/6,np.pi/6,3) # Yaw Error
 
+
 for ye in YE:
     WT.update_yaw_pos( wd-ye)
     WT.update_wind([10*np.sin(wd),0,10*np.cos(wd)])
@@ -40,7 +41,7 @@ for ye in YE:
     z = np.linspace(-4*R,4*R,nz)
     [X,Z]=np.meshgrid(x,z)
     Y=Z*0+h_hub
-    ux,uy,uz = WT.compute_u(X,Y,Z)
+    ux,uy,uz = WT.compute_u(X,Y,Z,root=root,longi=longi,tang=tang)
 
     fig=plt.figure()
     ax=fig.add_subplot(111)

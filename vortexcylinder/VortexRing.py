@@ -113,7 +113,7 @@ def rings_u(Xcp,Ycp,Zcp,Gamma_r,Rr,Xr,Yr,Zr,polar_out=True,epsilon=0):
 # --- TEST 
 # --------------------------------------------------------------------------------{
 class TestRing(unittest.TestCase):
-    def test_singularities(self):
+    def test_Ring_singularities(self):
 #         import warnings
 #         warnings.filterwarnings('error')
         # ---- r=0, z=0, uz=Gamma/(2R)
@@ -123,7 +123,7 @@ class TestRing(unittest.TestCase):
         ur,uz=ring_u(1,0,0)
         np.testing.assert_almost_equal(uz,-1/4)
 
-    def test_axis(self):
+    def test_Ring_axis(self):
         # Test that ring gives axis formula, eq 35.11 in reference [1]
         Gamma, R = -1, 10
         z=np.linspace(-2*R,2*R,20)
@@ -140,7 +140,7 @@ class TestRing(unittest.TestCase):
         #plt.plot(z,ur)
         #plt.show()
 
-    def test_axis_approx(self):
+    def test_Ring_axis_approx(self):
         # Test the approximate axis formula, close to axis, eq 35.22 in reference [1]
         Gamma, R= -1, 10
         z=np.linspace(-2*R,2*R,21)
@@ -159,7 +159,7 @@ class TestRing(unittest.TestCase):
         #plt.plot(z,uz,'--')
         #plt.show()
 # 
-    def test_rotor(self):
+    def test_Ring_rotor(self):
         pass
         # Test that induction on the rotor is constant, equal to gamma/2, see [1]
 #         gamma_t, R= -1, 10
@@ -196,7 +196,7 @@ class TestRing(unittest.TestCase):
 #         x=np.linspace(-(R-eps), R-eps, 10)
 #         y=x*0
 #         z=x*0
-#         ur,uz=cylinder_tang_semi_inf_u(x,y,z,gamma_t,R)
+#         ur,uz=vc_tang_u(x,y,z,gamma_t,R)
 # #         uz_ref=[gamma_t/2]*len(x)
 # #         np.testing.assert_almost_equal(uz,uz_ref,decimal=7)
 #         print(ur)

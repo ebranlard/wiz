@@ -6,12 +6,12 @@ import unittest
 import numpy as np
 # --- Local
 try:
-    from .VortexCylinder import cylinder_tang_semi_inf_u, cylinders_tang_semi_inf_u
+    from .VortexCylinder import vc_tang_u, vcs_tang_u
 except:
     try:
-        from vortexcylinder.VortexCylinder import cylinder_tang_semi_inf_u, cylinders_tang_semi_inf_u
+        from vortexcylinder.VortexCylinder import vc_tang_u, vcs_tang_u
     except:
-        from VortexCylinder import cylinder_tang_semi_inf_u, cylinders_tang_semi_inf_u
+        from VortexCylinder import vc_tang_u, vcs_tang_u
 
 
 def gridLayout(nx,xSpacing,nz,zSpacing=None,hub_height=0,mirror=False):
@@ -61,7 +61,7 @@ def windfarm_gridlayout_CTconst(Xcp,Ycp,Zcp,R,CT,U0,nxWT,xWTSpacing,nzWT,zWTSpac
     vR       = np.zeros((nWT,nr)) + R
     vgamma_t = np.zeros((nWT,nr)) + gamma_t
 
-    return cylinders_tang_semi_inf_u(Xcp,Ycp,Zcp,vgamma_t,vR,xWT,yWT,zWT,epsilon=0)
+    return vcs_tang_u(Xcp,Ycp,Zcp,vgamma_t,vR,xWT,yWT,zWT,epsilon=0)
 
 
 
@@ -75,7 +75,7 @@ def windfarm_gridlayout_CTconst(Xcp,Ycp,Zcp,R,CT,U0,nxWT,xWTSpacing,nzWT,zWTSpac
 # --------------------------------------------------------------------------------{
 class TestWindFarm(unittest.TestCase):
 
-    def test_layout(self):
+    def test_WF_layout(self):
         # test funciton that generates a grid layout, with possible mirror
         x,y,z=gridLayout(nx=2,xSpacing=2,nz=2,zSpacing=3,hub_height=2,mirror=True)
         np.testing.assert_almost_equal(x,[-2, 0,-2, 0, -2,  0, -2,  0])
