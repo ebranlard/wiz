@@ -23,12 +23,12 @@ import matplotlib.pyplot as plt
 
 def main():
     # --- Parameters for algorithm
-    nCyl  = 15
-    root  = True
-    longi = True
-    tang  = True
+    nCyl  = 1
+    root  = False
+    longi = False
+    tang  = True 
     # --- Parameters for plotting
-    vD = [0,2,4,8] # Wake diameters 
+    vD = [0,10] # Wake diameters 
     ny = 40
     nz = 42
     yLIM =[-2,2] # xlim in Radius
@@ -52,6 +52,13 @@ def main():
     WT.update_wind([U0,0,0])
     WT.update_loading(r=vr_bar*R, Ct=Ct_AD, Lambda=Lambda, nCyl=nCyl)
     #ux,uy,uz = WT.compute_u(np.array([0]),np.array([0]),np.array([0]),root=root,longi=longi,tang=tang)
+
+#     plt.figure,
+#     plt.plot(WT.r,WT.gamma_t,label='gamma_t')
+#     plt.plot(WT.r,WT.gamma_l,label='gamma_l')
+#     plt.plot(WT.r,WT.Ct,label='Ct')
+#     plt.legend()
+#     plt.show()
 
     Rotor=WT.rotor_disk_points() # Rotor projection
     # --- Loop on downstream diameters

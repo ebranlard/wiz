@@ -135,6 +135,8 @@ def WakeVorticityFromCirculation_Cont(r_cp,Gamma_cp,R,U0,Omega,bSwirl,method='an
     misc['h']  = misc['Vz']*2*np.pi/(Omega*(1+2*a_prime))
     misc['a'] = a
     misc['a_prime'] = a_prime
+    misc['Gamma_cp'] = Gamma_cp
+    misc['r_cp'] = r_cp
     # Vortex intensities
     Gamma_tilde = Gamma_cp - np.concatenate((Gamma_cp[1:],[0])) #Gamma_tilde = Gamma_i-Gamma_{i+1}
     gamma_t     = - Gamma_tilde/misc['h']
@@ -206,7 +208,7 @@ def WakeVorticityFromCirculation_Discr(r_cp,Gamma_cp,R,U0,Omega,nB,bSwirl,method
         Cteff       = np.zeros(n)
         gamma_t_bar = np.zeros(n)
         # --- Init
-        C        = np.multiply(Gamma_cp*Omega/(np.pi*U0**2),(1 + ap_cyl_conv))
+        C        = Gamma_cp*Omega/(np.pi*U0**2)*(1 + ap_cyl_conv)
         lambda_R = Omega * r_cyl / U0
         # Looping through radii in reversed order
         for i in np.arange(n-1,-1,-1):
@@ -261,6 +263,8 @@ def WakeVorticityFromCirculation_Discr(r_cp,Gamma_cp,R,U0,Omega,nB,bSwirl,method
 
         misc['a'] = a
         misc['a_prime'] = a_prime
+        misc['Gamma_cp'] = Gamma_cp
+        misc['r_cp'] = r_cp
 
         # --- Vortex intensities
         Gamma_tilde = Gamma_cp - np.concatenate((Gamma_cp[1:],[0])) #Gamma_tilde = Gamma_i-Gamma_{i+1}

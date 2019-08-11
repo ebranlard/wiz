@@ -120,9 +120,9 @@ class WindTurbine:
             if nCyl==1:
                 vr0= np.array([0.995*self.R])
                 if Ct is not None:
-                    Ct =np.mean(Ct)
+                    Ct =np.array([np.mean(Ct)])
                 if Gamma is not None:
-                    Gamma =np.mean(Gamma)
+                    Gamma =np.array([np.mean(Gamma)])
             else:
                 vr0= np.linspace(0.005,0.995,nCyl)*self.R
                 if Ct is not None:
@@ -142,7 +142,7 @@ class WindTurbine:
         if Ct is not None:
             self.gamma_t,self.gamma_l,self.Gamma_r,misc=WakeVorticityFromCt(r,Ct,self.R,U0,Omega)
         elif Gamma is not None:
-            self.gamma_t,self.gamma_l,self.Gamma_r,misc=WakeVorticityFromGamma(r,Ct,self.R,U0,Omega)
+            self.gamma_t,self.gamma_l,self.Gamma_r,misc=WakeVorticityFromGamma(r,Gamma,self.R,U0,Omega)
         else:
             raise Exception('Unknown loading spec')
         #print('gamma_t    ',self.gamma_t)
@@ -195,10 +195,9 @@ class WindTurbine:
     #        raise Exception('Tilt and yaw not supported yet')
     #    return np.arcsin(shaft_vert)*180/np.pi
 
-    def rotor_disk_points(self):
-        nP=100
+    def rotor_disk_points(self,nP=100):
         points=np.zeros((3,nP))
-        theta=np.linspace(0,2*np.pi,nP)
+        theta=np.linspace(0,2*np.pi,nP) # dTheta=2 pi /(np-1)
         e_r = self.R*orth_vect(self.e_shaft_g)
         for i,t in enumerate(theta):
             T=RotMat_AxisAngle(self.e_shaft_g,t)

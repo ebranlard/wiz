@@ -84,6 +84,25 @@ def svc_tang_u_polar(vr,vpsi,vz,gamma_t=-1,R=1,m=0,ntheta=180,polar_out=False):
         u_z   =  u_z.reshape(shape_in)   
         return u_r,u_psi,u_z
     else:
+#         print('>>>>>> HACK')
+#         bx, by = -R * np.cos(vtheta), -R * np.sin(vtheta)
+#         u_x   = np.zeros(vr.shape)
+#         u_y   = np.zeros(vr.shape)
+#         # ---- Loop on all control points to find velocity
+#         for i,(r,psi,z) in enumerate(zip(vr,vpsi,vz)):
+#             # Functions of theta in the integrand
+#             a = R**2 + r** 2 + z**2 - 2*R*r*np.cos(vtheta - psi)
+#             b = 2 * m * R * np.cos(vtheta) - 2 * m * r * np.cos(psi) - 2 * z
+#             ax, ay = R * z * np.cos(vtheta),  R * z * np.sin(vtheta)
+#             az = R * (R - r * np.cos(vtheta - psi))
+#             #D = 2*gamma_t/(4*np.pi)/(np.multiply(np.sqrt(a),(2 * np.sqrt(a * c)+ b)))
+#             D = -4*gamma_t/(np.sqrt(c)*4*np.pi)/(4*a*c-b**2)
+#             # Integrations
+#             u_x[i]    = np.trapz((b*bx-2*ax*c)*D, vtheta)
+#             u_y[i]    = np.trapz((b*by-2*ay*c)*D, vtheta)
+#             u_z[i]    = np.trapz((b*bz-2*az*c)*D, vtheta)
+
+
         bx, by = -R * np.cos(vtheta), -R * np.sin(vtheta)
         u_x   = np.zeros(vr.shape)
         u_y   = np.zeros(vr.shape)
@@ -99,6 +118,7 @@ def svc_tang_u_polar(vr,vpsi,vz,gamma_t=-1,R=1,m=0,ntheta=180,polar_out=False):
             u_x[i]    = np.trapz((ax * np.sqrt(c)+ np.multiply(bx,np.sqrt(a)))*D, vtheta)
             u_y[i]    = np.trapz((ay * np.sqrt(c)+ np.multiply(by,np.sqrt(a)))*D, vtheta)
             u_z[i]    = np.trapz((az * np.sqrt(c)+ np.multiply(bz,np.sqrt(a)))*D, vtheta)
+
         # Reshaping to desired shape
         u_x   =  u_x.reshape(shape_in)   
         u_y   =  u_y.reshape(shape_in)   
