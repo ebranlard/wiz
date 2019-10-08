@@ -1,0 +1,3 @@
+[submodule "floris"]
+	path = floris
+	url = https://github.com/ebranlard/floris
