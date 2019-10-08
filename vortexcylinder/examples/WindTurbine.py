@@ -29,7 +29,8 @@ def main():
 
     WT=WindTurbine(R=R,e_shaft_yaw0=[0,0,1],e_vert=[0,1,0])
     wd=0 # Wind direction
-    YE=np.linspace(-np.pi/6,np.pi/6,3) # Yaw Error
+    #YE=np.linspace(-np.pi/6,np.pi/6,3) # Yaw Error
+    YE=[0]
 
     vr_bar    = np.linspace(0,1.0,100)
     Ct_AD     = Ct_const_cutoff(CT0,r_bar_cut,vr_bar,r_bar_tip) # TODO change me
@@ -47,7 +48,7 @@ def main():
         z = np.linspace(-4*R,4*R,nz)
         [X,Z]=np.meshgrid(x,z)
         Y=Z*0+h_hub
-        ux,uy,uz = WT.compute_u(X,Y,Z,root=root,longi=longi,tang=tang)
+        ux,uy,uz = WT.compute_u(X,Y,Z,root=root,longi=longi,tang=tang,no_wake=True,only_ind=True)
 
         fig=plt.figure()
         ax=fig.add_subplot(111)

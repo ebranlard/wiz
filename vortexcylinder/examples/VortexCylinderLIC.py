@@ -13,12 +13,12 @@ import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
 # --- Local
-from vortexcylinder.VortexCylinder import cylinder_tang_semi_inf_u
+from vortexcylinder.VortexCylinder import vc_tang_u
 try:
     from pybra.colors import darkrainbow as cmap
     from pybra.colors import darkrainbow, adjust_color_lightness, manual_colorbar
     from pybra.curves import streamQuiver
-    from pybra.lic    import lic
+    from pybra.lic    import lic, licImage
 except:
     raise Exception('This script requires the package `pybra` from https://github.com/ebranlard/pybra/')
 
@@ -33,47 +33,37 @@ if bAddFlow:
 else:
     CLIM=[0.0,1.1]
     gamma_t=-1
-nx = 600    # Number of points for velocity evaluation
+nx = 50    # Number of points for velocity evaluation
 nz = nx 
 
 # LIC params
 nLICKernel=31
 offset=0.4
 spread=1.1
-Accentuation=1.5
+accentuation=1.5
 
 
 # Movie params
 Amplitude=1.0
 anim_meth='kernelphaseOffset' # timesfreq, sinepure, kernelphase
-movie=True
+movie=False
 dpi = 300
 freq=5 
 TMAX=5/freq
 nFrames=220
 
 # --- Flow field and speed
-
-ux0,uy0,uz0 = cylinder_tang_semi_inf_u(0,0,0,gamma_t,R,polar_out=False)
+print('Flow field...')
+ux0,uy0,uz0 = vc_tang_u(0,0,0,gamma_t,R,polar_out=False)
 print('uz0',uz0)
 
 zs = np.linspace(ZLIM[0]*1.08,ZLIM[1]*1.08,nx).astype(np.float32)
 xs = np.linspace(XLIM[0]*1.08,XLIM[1]*1.08,nx).astype(np.float32)
 [Z,X]=np.meshgrid(zs,xs)
 Y=X*0
-ux,uy,uz = cylinder_tang_semi_inf_u(X,Y,Z,gamma_t,R,polar_out=False)
+ux,uy,uz = vc_tang_u(X,Y,Z,gamma_t,R,polar_out=False)
 if bAddFlow:
     uz=1+uz
-
-
-Speed=np.sqrt((uz**2+ux**2))
-print('Speed range',np.min(Speed),np.max(Speed))
-Speed[Speed>CLIM[1]]=CLIM[1]
-Speed[Speed<CLIM[0]]=CLIM[0]
-
-COL=cmap((Speed-CLIM[0])/(CLIM[1]-CLIM[0])) # cmap requires value between 0 and 1
-COL=COL[:,:,0:3]
-
 
 # --- Surface and rotor
 xr_c = np.linspace(-R,R,10)
@@ -100,10 +90,15 @@ xl_c = 0*zl_c-R
 
 # --- Inputs for LIC
 n = nLICKernel
-texture = np.random.rand(nz,nz).astype(np.float32)
+texture = np.random.rand(nz,nx).astype(np.float32)
 BaseKernel = np.sin(np.arange(n)*np.pi/n)
 
 def lic_step(fig,t,it=0,save=False):
+    # --- Plotting
+    fig.clf()
+#     fig.set_size_inches(12, 12)
+    ax=fig.add_subplot(111)
+
     # --- LIC
     if anim_meth=='timesfreq':
         # NOTE: gives some granularity based on freq and n, not easy to scale
@@ -117,23 +112,11 @@ def lic_step(fig,t,it=0,save=False):
     elif anim_meth=='sinpure':
         # NOTE: only changes the intensity, does not give a fow
         kernel = BaseKernel*(1+Amplitude*np.sin(2*np.pi*freq*t))
-    kernel = kernel*Accentuation
-    kernel = kernel.astype(np.float32)
 
-    image=lic(uz,ux,texture=texture,kernel=kernel)
-    # image=(image-MIN)/(MAX-MIN)
-    image=image-np.mean(image)+nLICKernel/2 # Making sure all images have the same mean
-    image=image/nLICKernel # scaling between 0 and 1
-    image= offset+spread*image
-#     # ---MY IMAGE
-    MyImage=adjust_color_lightness(COL, image)
-#     MyImage=image
-    # --- Plotting
-    fig.clf()
-#     fig.set_size_inches(12, 12)
-    ax=fig.add_subplot(111)
+    MyImage=licImage(zs,xs,uz,ux,texture=texture,kernel=kernel,minSpeed=CLIM[0],maxSpeed=CLIM[1],accentuation=accentuation,offset=offset,spread=spread,axial=False,cmap=cmap)
     # Background
     im=ax.imshow(MyImage,extent=[min(zs),max(zs),max(xs),min(xs)])
+
     ax.set_xlim(ZLIM[0],ZLIM[1])
     ax.set_ylim(XLIM[0],XLIM[1])
     # Colorbar
@@ -163,11 +146,12 @@ def lic_step(fig,t,it=0,save=False):
 
 fig=plt.figure()
 # fig.set_size_inches(12, 12)
+print('LIC...')
 kernel_t0  =lic_step(fig,t=0,it=0,save=False)
-kernel_tmax=lic_step(fig,t=TMAX,it=0,save=False)
-print(kernel_t0)
-print(kernel_tmax)
-np.testing.assert_almost_equal(kernel_t0,kernel_tmax)
+# kernel_tmax=lic_step(fig,t=TMAX,it=0,save=False)
+# print(kernel_t0)
+# print(kernel_tmax)
+# np.testing.assert_almost_equal(kernel_t0,kernel_tmax)
 plt.show()
 
 if movie:

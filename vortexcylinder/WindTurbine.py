@@ -24,7 +24,6 @@ try:
 except:
     pass
 
-
 # --------------------------------------------------------------------------------}
 # --- Helper functions for geometry 
 # --------------------------------------------------------------------------------{
@@ -69,7 +68,7 @@ def transform(T_a2b,Xa,Ya,Za):
 class WindTurbine:
     def __init__(self,R,r_hub=[0,0,0],e_shaft_yaw0=[0,0,1],e_vert=[0,1,0],U0=[0,0,10],Ct=None,Lambda=None,name=''):
         """ 
-         - e_vert: verticla vector, about which yawing is done
+         - e_vert: vertical vector, about which yawing is done
         """
         self.set_yaw0_coord(e_shaft_yaw0,e_vert)
         self.update_position(r_hub)
@@ -206,8 +205,7 @@ class WindTurbine:
 
 
     
-    def compute_u(self,Xg,Yg,Zg,only_ind=False, longi=True, tang=True, root=True):
-        # Transformtion from cylinder to global
+    def compute_u(self,Xg,Yg,Zg,only_ind=False, longi=True, tang=True, root=True, no_wake=False): # Transformtion from cylinder to global
         T_c2g=np.dot(self.T_wt2g,self.T_c2wt)
         Xc,Yc,Zc = transform_T(T_c2g, Xg,Yg,Zg)
         # Detecting whether our vertical convention match, and define chi
@@ -276,6 +274,31 @@ class WindTurbine:
                 uxc += uxc0
                 uyc += uyc0
                 uzc += uzc0
+        if no_wake:
+#             uxc[:]=0
+#             uyc[:]=0
+#             uzc[:]=1
+            # Zero wake induction
+            bDownStream=Zc>0
+            Rc = np.sqrt(Xc**2 + Yc**2)
+            bRotorTube = Rc<self.R
+            bSelZero = np.logical_and(bRotorTube,bDownStream)
+            uxc[bSelZero]=0
+            uyc[bSelZero]=0
+            uzc[bSelZero]=0
+            # Decay
+#             rc = np.sqrt(Xc**2 + Yc**2 + Zc**2)
+#             RadialDecay = np.ones(rc.shape)
+#             bSelDecay = np.logical_and(rc>self.R, bDownStream)
+#             RadialDecay[bSelDecay] = 1/(rc[bSelDecay]/self.R)**2
+#             ZDecay = np.ones(uxc.shape)
+            #bSelDecay = np.logical_and(Zc>self.R, bDownStream)
+#             bSelDecay = bDownStream
+            #ZDecay[bSelDecay] = 1/(Zc[bSelDecay]/self.R)**2
+#             ZDecay[bSelDecay] = np.exp(-(Zc[bSelDecay]/self.R)**2)
+#             uxc*=ZDecay
+#             uyc*=ZDecay
+#             uzc*=ZDecay
 
         # Back to global
         uxg,uyg,uzg = transform(T_c2g, uxc, uyc, uzc)
@@ -286,21 +309,25 @@ class WindTurbine:
             uzg += self.U0_g[2]
         return uxg,uyg,uzg
 
+    def tostring(self,short=True):
+        s ='class WindTurbine({}), with attributes:\n'.format(self.name)
+        s+=' - R      : {}\n'.format(self.R)
+        s+=' - r_hub  : {}\n'.format(self.r_hub.T)
+        s+=' - U0     : {}\n'.format(self.U0_g.T)
+        s+=' - yaw_err: {} deg\n'.format(self.yaw_error*180/np.pi)
+        if not short:
+            s+=' - wd     : {} deg\n'.format(self.yaw_wind*180/np.pi)
+            s+=' - e_shaft: {}\n'.format(np.round(self.e_shaft_g.T,4))
+            s+=' - yaw_pos: {} deg\n'.format(self.yaw_pos  *180/np.pi)
+            s+=' - yaw_err: {} deg\n'.format((-self.yaw_wind+self.yaw_pos)*180/np.pi)
+            s+=' - T_F2g  : \n{}\n'.format(np.round(self.T_F2g ,4))
+            s+=' - T_c2wt : \n{}\n'.format(np.round(self.T_c2wt,4))
+            s+=' - T_wt2g : \n{}\n'.format(np.round(self.T_wt2g,4))
+            s+=' - T_c2g  : \n{}\n'.format(np.round(np.dot(self.T_wt2g,self.T_c2wt),4))
+        return s
 
     def __repr__(self):
-        s ='class WindTurbine({}), with attributes:\n'.format(self.name)
-        s+=' - r_hub  : {}\n'.format(self.r_hub)
-        s+=' - R      : {}\n'.format(self.R)
-        s+=' - e_shaft: {}\n'.format(np.round(self.e_shaft_g.T,4))
-        s+=' - U0     : {}\n'.format(self.U0_g.T)
-        s+=' - wd     : {} deg\n'.format(self.yaw_wind*180/np.pi)
-        s+=' - yaw_pos: {} deg\n'.format(self.yaw_pos  *180/np.pi)
-        s+=' - yaw_err: {} deg\n'.format(self.yaw_error*180/np.pi)
-        s+=' - yaw_err: {} deg\n'.format((-self.yaw_wind+self.yaw_pos)*180/np.pi)
-        s+=' - T_F2g  : \n{}\n'.format(np.round(self.T_F2g ,4))
-        s+=' - T_c2wt : \n{}\n'.format(np.round(self.T_c2wt,4))
-        s+=' - T_wt2g : \n{}\n'.format(np.round(self.T_wt2g,4))
-        s+=' - T_c2g  : \n{}\n'.format(np.round(np.dot(self.T_wt2g,self.T_c2wt),4))
+        s=self.tostring(short=False)
         #s+=' - tilt   :  {}\n'.format(self.tilt)
         #s+=' - e_shaft: {}\n'.format(self.e_shaft)
         #s+=' - e_vert: {}\n'.format(self.e_vert)
