@@ -279,7 +279,7 @@ class WindTurbine:
 #             uyc[:]=0
 #             uzc[:]=1
             # Zero wake induction
-            bDownStream=Zc>0
+            bDownStream=Zc>=0
             Rc = np.sqrt(Xc**2 + Yc**2)
             bRotorTube = Rc<self.R
             bSelZero = np.logical_and(bRotorTube,bDownStream)
