@@ -164,7 +164,7 @@ def cylinder_tang_semi_inf_u_raw(Xcp,Ycp,Zcp,gamma_t=-1,R=1):
 
     return ur,uz
 
-def vcs_tang_u(Xcp,Ycp,Zcp,gamma_t,R,Xcyl,Ycyl,Zcyl,epsilon=0):
+def vcs_tang_u(Xcp,Ycp,Zcp,gamma_t,R,Xcyl,Ycyl,Zcyl,epsilon=0,Ground=False):
     """ 
     Computes the velocity field for nCyl*nr cylinders, extending along z:
         nCyl: number of main cylinders
@@ -177,7 +177,8 @@ def vcs_tang_u(Xcp,Ycp,Zcp,gamma_t,R,Xcyl,Ycyl,Zcyl,epsilon=0):
         gamma_t: array of size (nCyl,nr), distribution of gamma for each cylinder as function of radius
         R      : array of size (nCyl,nr), 
         Xcyl,Ycyl,Zcyl: array of size nCyl) giving the center of the rotor
-        All inputs should be numpy arrays
+        Ground: boolean, True if ground effect is to be accounted for
+    All inputs (except Ground) should be numpy arrays
     """ 
     Xcp=np.asarray(Xcp)
     Ycp=np.asarray(Ycp)
@@ -189,18 +190,29 @@ def vcs_tang_u(Xcp,Ycp,Zcp,gamma_t,R,Xcyl,Ycyl,Zcyl,epsilon=0):
     nCyl,nr = R.shape
     for i in np.arange(nCyl):
         Xcp0,Ycp0,Zcp0=Xcp-Xcyl[i],Ycp-Ycyl[i],Zcp-Zcyl[i]
-        for j in np.arange(nr):
-            print('.',end='')
-            if np.abs(gamma_t[i,j]) > 0:
-                ux1,uy1,uz1 = vc_tang_u(Xcp0,Ycp0,Zcp0,gamma_t[i,j],R[i,j],polar_out=False,epsilon=epsilon)
-                ux = ux + ux1
-                uy = uy + uy1
-                uz = uz + uz1
+        if Ground:
+            YcpMirror = Ycp0+2*Ycyl[i]
+            Ylist = [Ycp0,YcpMirror]
+        else:
+            Ylist = [Ycp0]
+        for iy,Y in enumerate(Ylist):
+            for j in np.arange(nr):
+                if iy==0:
+                    print('.',end='')
+                else:
+                    print('m',end='')
+                if np.abs(gamma_t[i,j]) > 0:
+                    ux1,uy1,uz1 = vc_tang_u(Xcp0,Y,Zcp0,gamma_t[i,j],R[i,j],polar_out=False,epsilon=epsilon)
+                    ux = ux + ux1
+                    uy = uy + uy1
+                    uz = uz + uz1
     print('')
     return ux,uy,uz
     
-def vcs_longi_u(Xcp,Ycp,Zcp,gamma_l,R,Xcyl,Ycyl,Zcyl):
-    """ see vcs_tang_u """ 
+def vcs_longi_u(Xcp,Ycp,Zcp,gamma_l,R,Xcyl,Ycyl,Zcyl,Ground=False):
+    """ see vcs_tang_u 
+    NOTE: Longi vorticity shouldn't matter for ground effect
+    """ 
     Xcp=np.asarray(Xcp)
     Ycp=np.asarray(Ycp)
     Zcp=np.asarray(Zcp)

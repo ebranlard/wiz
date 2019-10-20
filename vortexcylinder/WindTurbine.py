@@ -66,7 +66,7 @@ def transform(T_a2b,Xa,Ya,Za):
 # --- Main Class 
 # --------------------------------------------------------------------------------{
 class WindTurbine:
-    def __init__(self,R,r_hub=[0,0,0],e_shaft_yaw0=[0,0,1],e_vert=[0,1,0],U0=[0,0,10],Ct=None,Lambda=None,name=''):
+    def __init__(self,R,r_hub=[0,0,0],e_shaft_yaw0=[0,0,1],e_vert=[0,1,0],U0=[0,0,10],Ct=None,Lambda=None,name='',Ground=False):
         """ 
          - e_vert: vertical vector, about which yawing is done
         """
@@ -80,6 +80,7 @@ class WindTurbine:
         self.gamma_t=None
         self.Gamma_r=None
         self.Lambda=Lambda
+        self.Ground=Ground # Ground effect will be included in calculation of induced velocity
 
     def set_yaw0_coord(self,e_shaft_yaw0,e_vert):
         self.e_shaft_g = np.asarray(e_shaft_yaw0).ravel().reshape(3,1)
@@ -205,7 +206,11 @@ class WindTurbine:
 
 
     
-    def compute_u(self,Xg,Yg,Zg,only_ind=False, longi=True, tang=True, root=True, no_wake=False): # Transformtion from cylinder to global
+    def compute_u(self,Xg,Yg,Zg,only_ind=False, longi=True, tang=True, root=True, no_wake=False, ground=None): # Transformtion from cylinder to global
+        # Optional argument ground can overwrite self.Ground
+        if ground is None:
+            ground=self.Ground
+        # Control points in "Cylinder coordinate system" (rotation only)
         T_c2g=np.dot(self.T_wt2g,self.T_c2wt)
         Xc,Yc,Zc = transform_T(T_c2g, Xg,Yg,Zg)
         # Detecting whether our vertical convention match, and define chi
@@ -218,38 +223,55 @@ class WindTurbine:
         uyc = np.zeros(Xg.shape)
         uzc = np.zeros(Xg.shape)
         m=np.tan(self.chi)
+        # Cylinder position in "Cylinder coordinate system) (rotation only)
         Xcyl, Ycyl, Zcyl = transform_T(T_c2g,np.array([self.r_hub[0]]), np.array([self.r_hub[1]]),  np.array([self.r_hub[2]]))
+        # Translate control points such that origin is at rotor center. NOTE: not all routines use this
+        Xc0,Yc0,Zc0=Xc-Xcyl[0],Yc-Ycyl[0],Zc-Zcyl[0]
+        if ground:
+            # Mirror control points are two time the hub height above the cylinder
+            Yc0mirror=Yc+2*Ycyl[0]
+            Ylist=[Yc0,Yc0mirror]
+            print('>>> Ground effect')
+        else:
+            Ylist=[Yc0]
 
+        # --- Root vortex influence
         if root and  (self.Gamma_r is not None) and self.Gamma_r!=0:
-            if np.abs(self.chi)>1e-7:
-                uxc0,uyc0,uzc0 = svc_root_u(Xc,Yc,Zc,Gamma_r=self.Gamma_r,m=m,polar_out=False)
-            else:
-                uxc0,uyc0,uzc0 =  vc_root_u(Xc,Yc,Zc,Gamma_r=self.Gamma_r,polar_out=False)
-            uxc += uxc0
-            uyc += uyc0
-            uzc += uzc0
+            for Y in Ylist:
+                if np.abs(self.chi)>1e-7:
+                    uxc0,uyc0,uzc0 = svc_root_u(Xc0,Y,Zc0,Gamma_r=self.Gamma_r,m=m,polar_out=False)
+                else:
+                    uxc0,uyc0,uzc0 =  vc_root_u(Xc0,Y,Zc0,Gamma_r=self.Gamma_r,polar_out=False)
+                uxc += uxc0
+                uyc += uyc0
+                uzc += uzc0
 
 
         if len(self.gamma_t)==1:
-            # translate control points
-            Xc,Yc,Zc=Xc-Xcyl[0],Yc-Ycyl[0],Zc-Zcyl[0]
-            if tang and (self.gamma_t!=0):
-                if np.abs(self.chi)>1e-7:
-                    uxc0,uyc0,uzc0 = svc_tang_u(Xc,Yc,Zc,gamma_t=self.gamma_t,R=self.R,m=m,polar_out=False)
-                else:
-                    uxc0,uyc0,uzc0 = vc_tang_u (Xc,Yc,Zc,gamma_t=self.gamma_t,R=self.R    ,polar_out=False)
-                uxc += uxc0
-                uyc += uyc0
-                uzc += uzc0
-            if longi and (self.gamma_l is not None) and self.gamma_l!=0 :
-                if np.abs(self.chi)>1e-7:
-                    uxc0,uyc0,uzc0 = svc_longi_u(Xc,Yc,Zc,gamma_l=self.gamma_l,R=self.R,m=m,polar_out=False)
-                else:
-                    uxc0,uyc0,uzc0 = vc_longi_u(Xc,Yc,Zc,gamma_l=self.gamma_l,R=self.R    ,polar_out=False)
-                uxc += uxc0
-                uyc += uyc0
-                uzc += uzc0
+            # --- Tangential and longi - ONE Cylinder only
+            for iY,Y in enumerate(Ylist):
+                if tang and (self.gamma_t!=0):
+                    if np.abs(self.chi)>1e-7:
+                        uxc0,uyc0,uzc0 = svc_tang_u(Xc0,Y,Zc0,gamma_t=self.gamma_t,R=self.R,m=m,polar_out=False)
+                    else:
+                        uxc0,uyc0,uzc0 = vc_tang_u (Xc0,Y,Zc0,gamma_t=self.gamma_t,R=self.R    ,polar_out=False)
+                        if iY==0:
+                            print('>> regular')
+                        elif iY==1:
+                            print('>> mirror')
+                    uxc += uxc0
+                    uyc += uyc0
+                    uzc += uzc0
+                if longi and (self.gamma_l is not None) and self.gamma_l!=0 :
+                    if np.abs(self.chi)>1e-7:
+                        uxc0,uyc0,uzc0 = svc_longi_u(Xc0,Y,Zc0,gamma_l=self.gamma_l,R=self.R,m=m,polar_out=False)
+                    else:
+                        uxc0,uyc0,uzc0 = vc_longi_u (Xc0,Y,Zc0,gamma_l=self.gamma_l,R=self.R    ,polar_out=False)
+                    uxc += uxc0
+                    uyc += uyc0
+                    uzc += uzc0
         else:
+            # --- Tangential and longi - MULTI Cylinders
             nr   = len(self.r)
             nWT = 1
             # Control points are directly translated by routine
@@ -260,17 +282,17 @@ class WindTurbine:
             vm       = m* np.ones((nWT,nr))
             if tang:
                 if np.abs(self.chi)>1e-7:
-                    uxc0,uyc0,uzc0 = svcs_tang_u(Xc,Yc,Zc,gamma_t=gamma_t,R=vR,m=vm,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl)
+                    uxc0,uyc0,uzc0 = svcs_tang_u(Xc,Yc,Zc,gamma_t=gamma_t,R=vR,m=vm,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl,Ground=ground)
                 else:
-                    uxc0,uyc0,uzc0 = vcs_tang_u (Xc,Yc,Zc,gamma_t=gamma_t,R=vR    ,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl)
+                    uxc0,uyc0,uzc0 = vcs_tang_u (Xc,Yc,Zc,gamma_t=gamma_t,R=vR    ,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl, Ground=ground)
                 uxc += uxc0
                 uyc += uyc0
                 uzc += uzc0
             if longi and (self.gamma_l is not None):
                 if np.abs(self.chi)>1e-7:
-                    uxc0,uyc0,uzc0 = svcs_longi_u(Xc,Yc,Zc,gamma_l=gamma_l,R=vR,m=vm,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl)
+                    uxc0,uyc0,uzc0 = svcs_longi_u(Xc,Yc,Zc,gamma_l=gamma_l,R=vR,m=vm,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl, Ground=ground)
                 else:
-                    uxc0,uyc0,uzc0 = vcs_longi_u (Xc,Yc,Zc,gamma_l=gamma_l,R=vR      ,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl)
+                    uxc0,uyc0,uzc0 = vcs_longi_u (Xc,Yc,Zc,gamma_l=gamma_l,R=vR      ,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl, Ground=ground)
                 uxc += uxc0
                 uyc += uyc0
                 uzc += uzc0
@@ -279,8 +301,8 @@ class WindTurbine:
 #             uyc[:]=0
 #             uzc[:]=1
             # Zero wake induction
-            bDownStream=Zc>=0
-            Rc = np.sqrt(Xc**2 + Yc**2)
+            bDownStream=Zc0>=0
+            Rc = np.sqrt(Xc0**2 + Yc0**2)
             bRotorTube = Rc<self.R
             bSelZero = np.logical_and(bRotorTube,bDownStream)
             uxc[bSelZero]=0
@@ -338,14 +360,9 @@ class WindTurbine:
 # --- TEST 
 # --------------------------------------------------------------------------------{
 class TestWindTurbine(unittest.TestCase):
-
-    def test_WT_main(self):
-        # TODO
-        import matplotlib.pyplot as plt
+    def default_WT(self,h_hub=0,Ground=False):
         # --- Test in Cylinder coord
-        R=65
-        h_hub=0
-
+        R         = 65
         U0        = 10
         r_bar_cut = 0.21
         r_bar_tip = 0.81
@@ -353,7 +370,45 @@ class TestWindTurbine(unittest.TestCase):
         CT0       = 0.85
         nCyl      = 20
 
-        #yaw=np.linspace(0,2*np.pi,9)
+        # --- Cutting CT close to the root
+        vr_bar = np.linspace(0,1,100)
+        Ct_AD  = Ct_const_cutoff(CT0,r_bar_cut,vr_bar,r_bar_tip)
+
+        WTref=WindTurbine(R=R,e_shaft_yaw0=[0,0,1],e_vert=[0,1,0],r_hub=[0,h_hub,0],Ground=Ground)
+        WTref.update_wind([0,0,10])
+        WTref.update_loading(r=vr_bar*R, Ct=Ct_AD, Lambda=Lambda,nCyl=nCyl)
+        return WTref
+
+    def test_WT_ground(self):
+        root  = False
+        longi = False
+        tang  = True
+        R         = 65
+        # --- Flow field on axis
+        z = np.linspace(-4*R,4*R,10)
+        x = 0*z
+        y = 0*z
+
+        # --- Testing that Ground effect with h_hub=0 returns twice the induction
+        h_hub     = 0
+        WT =  self.default_WT(h_hub=h_hub)
+        ux_ref,uy_ref,uz_ref = WT.compute_u(x,y,z,root=root,longi=longi,tang=tang,only_ind=True,ground=False)
+        ux_grd,uy_grd,uz_grd = WT.compute_u(x,y,z,root=root,longi=longi,tang=tang,only_ind=True,ground=True )
+        np.testing.assert_almost_equal(uz_grd,2*uz_ref)
+
+    def test_WT_main(self):
+        #import matplotlib.pyplot as plt
+        # --- Test in Cylinder coord
+        R         = 65
+        h_hub     = 0
+        U0        = 10
+        r_bar_cut = 0.21
+        r_bar_tip = 0.81
+        Lambda    = 10
+        CT0       = 0.85
+        nCyl      = 20
+
+        # yaw=np.linspace(0,2*np.pi,9)
         yaw=np.array([0])*np.pi/180
         yaw_off=np.array([30.00])*np.pi/180
         # Flow field options

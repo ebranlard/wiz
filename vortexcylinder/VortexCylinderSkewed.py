@@ -296,7 +296,7 @@ def svc_root_u(Xcp,Ycp,Zcp,Gamma_r=-1,m=0,polar_out=False):
     u1,u2,u3 = svc_root_u_polar(vr,vpsi,Zcp,Gamma_r,m,polar_out=polar_out)
     return u1,u2,u3 # ux,uy,uz OR ur,upsi,uz
 
-def svcs_tang_u(Xcp,Ycp,Zcp,gamma_t,R,m,Xcyl,Ycyl,Zcyl,ntheta=180):
+def svcs_tang_u(Xcp,Ycp,Zcp,gamma_t,R,m,Xcyl,Ycyl,Zcyl,ntheta=180, Ground=False):
     """ 
     Computes the velocity field for nCyl*nr cylinders, extending along z:
         nCyl: number of main cylinders
@@ -307,7 +307,8 @@ def svcs_tang_u(Xcp,Ycp,Zcp,gamma_t,R,m,Xcyl,Ycyl,Zcyl,ntheta=180):
         R      : array of size (nCyl,nr), 
         m      : array of size (nCyl,nr), 
         Xcyl,Ycyl,Zcyl: array of size nCyl) giving the center of the rotor
-        All inputs should be numpy arrays
+        Ground: boolean, True if ground effect is to be accounted for
+    All inputs (except Ground) should be numpy arrays
     """ 
     Xcp=np.asarray(Xcp)
     Ycp=np.asarray(Ycp)
@@ -319,17 +320,26 @@ def svcs_tang_u(Xcp,Ycp,Zcp,gamma_t,R,m,Xcyl,Ycyl,Zcyl,ntheta=180):
     print('Tang.  (skewed)   ',end='')
     for i in np.arange(nCyl):
         Xcp0,Ycp0,Zcp0=Xcp-Xcyl[i],Ycp-Ycyl[i],Zcp-Zcyl[i]
-        for j in np.arange(nr):
-            print('.',end='')
-            if np.abs(gamma_t[i,j]) > 0:
-                ux1,uy1,uz1 = svc_tang_u(Xcp0,Ycp0,Zcp0,gamma_t[i,j],R[i,j],m[i,j],ntheta=ntheta,polar_out=False)
-                ux = ux + ux1
-                uy = uy + uy1
-                uz = uz + uz1
+        if Ground:
+            YcpMirror = Ycp0+2*Ycyl[i]
+            Ylist = [Ycp0,YcpMirror]
+        else:
+            Ylist = [Ycp0]
+        for iy,Y in enumerate(Ylist):
+            for j in np.arange(nr):
+                if iy==0:
+                    print('.',end='')
+                else:
+                    print('m',end='')
+                if np.abs(gamma_t[i,j]) > 0:
+                    ux1,uy1,uz1 = svc_tang_u(Xcp0,Y,Zcp0,gamma_t[i,j],R[i,j],m[i,j],ntheta=ntheta,polar_out=False)
+                    ux = ux + ux1
+                    uy = uy + uy1
+                    uz = uz + uz1
     print('')
     return ux,uy,uz
 
-def svcs_longi_u(Xcp,Ycp,Zcp,gamma_l,R,m,Xcyl,Ycyl,Zcyl,ntheta=180):
+def svcs_longi_u(Xcp,Ycp,Zcp,gamma_l,R,m,Xcyl,Ycyl,Zcyl,ntheta=180,Ground=False):
     """ See svcs_tang_u """ 
     Xcp=np.asarray(Xcp)
     Ycp=np.asarray(Ycp)
@@ -341,13 +351,22 @@ def svcs_longi_u(Xcp,Ycp,Zcp,gamma_l,R,m,Xcyl,Ycyl,Zcyl,ntheta=180):
     print('Longi. (skewed)   ',end='')
     for i in np.arange(nCyl):
         Xcp0,Ycp0,Zcp0=Xcp-Xcyl[i],Ycp-Ycyl[i],Zcp-Zcyl[i]
-        for j in np.arange(nr):
-            print('.',end='')
-            if np.abs(gamma_l[i,j]) > 0:
-                ux1,uy1,uz1 = svc_longi_u(Xcp0,Ycp0,Zcp0,gamma_l[i,j],R[i,j],m[i,j],ntheta=ntheta,polar_out=False)
-                ux = ux + ux1
-                uy = uy + uy1
-                uz = uz + uz1
+        if Ground:
+            YcpMirror = Ycp0+2*Ycyl[i]
+            Ylist = [Ycp0,YcpMirror]
+        else:
+            Ylist = [Ycp0]
+        for iy,Y in enumerate(Ylist):
+            for j in np.arange(nr):
+                if iy==0:
+                    print('.',end='')
+                else:
+                    print('m',end='')
+                if np.abs(gamma_l[i,j]) > 0:
+                    ux1,uy1,uz1 = svc_longi_u(Xcp0,Ycp0,Zcp0,gamma_l[i,j],R[i,j],m[i,j],ntheta=ntheta,polar_out=False)
+                    ux = ux + ux1
+                    uy = uy + uy1
+                    uz = uz + uz1
     print('')
     return ux,uy,uz
 
