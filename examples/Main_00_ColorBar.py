@@ -12,9 +12,7 @@ plt.rc('font', family='serif')
 plt.rc('font', size=12)
 
 # --- Plot options
-bCompute=False
-
-bColorBar=False
+bCompute=True
 nStreamlines=0
 
 U0 =10
@@ -24,8 +22,8 @@ maxSpeed=1.03
 levelsLines=np.sort([1.05,1.0,0.99,0.98,0.95,0.9,0.5])
 
 # ---
-nx=50
-ny=30
+nx=10
+ny=10
 
 input_file="Layout1x1.json"
 resolution=Vec3(nx, ny, 2)
@@ -62,7 +60,7 @@ else:
 cmap,valuesOri=get_cmap(minSpeed,maxSpeed)
 # figsize=(9,8)
 # fig.savefig(fname, bbox_to_inches='tight',dpi=500) 
-fig, axes = plt.subplots(nrows=len(Vals), ncols=1, sharex=True, sharey=True, figsize=(6.0, 6.0))
+fig, axes = plt.subplots(nrows=len(Vals), ncols=1, sharex=True, sharey=True)
 try:
     n=len(axes)
 except:
@@ -84,18 +82,15 @@ for i,(ax,p,t) in enumerate(zip(axes,planes,titles)):
 ax.set_xlim([-2,2])
 ax.set_ylim([0,2])
 
-if bColorBar:
-    fig.subplots_adjust(left=0.08, right=0.83, top=0.93, bottom=0.11,hspace=0.17)
-    cbar_ax = fig.add_axes([0.88, 0.11, 0.04, 0.82])
-    cbar=fig.colorbar(im, cax=cbar_ax)
-    cbar.set_ticks(levelsLines)
-    cbar.set_ticklabels([str(v) if v not in [0.99] else '' for v in levelsLines])
-    cbar.ax.tick_params(axis='both', direction='in',length=18,color=(0.5,0.5,0.5))
-else:
-    fig.subplots_adjust(left=0.08, right=0.99, top=0.94, bottom=0.10,hspace=0.19)
+fig.subplots_adjust(left=0.08, right=0.83, top=0.93, bottom=0.11,hspace=0.17)
+cbar_ax = fig.add_axes([0.88, 0.11, 0.04, 0.82])
+print(valuesOri)
+cbar=fig.colorbar(im, cax=cbar_ax)
+cbar.set_ticks(levelsLines)
+cbar.set_ticklabels([str(v) if v not in [0.99] else '' for v in levelsLines])
+cbar.ax.tick_params(axis='both', direction='in',length=18,color=(0.5,0.5,0.5))
 
-# fig.savefig('Layout11.pdf',bbox_to_inches='tight',dpi=100)
-fig.savefig('Layout11.png',bbox_to_inches='tight',dpi=600)
+fig.savefig('ColorBar.png',bbox_to_inches='tight',dpi=1200)
 
 
 # plt.show()

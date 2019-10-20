@@ -6,6 +6,7 @@ from helper_functions import *
 # --- Plot options
 Compute=True
 
+U0=8
 nx=1000
 ny=1000
 
@@ -14,7 +15,7 @@ resolution=Vec3(nx, ny, 2)
 
 x0=634392.0
 y0=6264751.0
-bounds=[x0-8000, x0+15000 , y0-3000 ,y0+25000 ,89,90] # xmin xmax .. zmin zmax
+bounds=[x0-6000, x0+18000 , y0-1000 ,y0+23000 ,89,90] # xmin xmax .. zmin zmax
 VC_Opts=options_dict()
 
 # --- Parametric computatoin
@@ -26,7 +27,5 @@ if Compute:
     y=y
     u=u/U0
     v=v/U0
-    savePlane(x,y,u,v,'_data/Farm_')
-else:
-    x,y,u,v=loadPlane('_data/Farm_')
+    savePlane(x,y,u,v,'_data/Farm_1000new_')
 

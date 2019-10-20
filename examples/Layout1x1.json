@@ -4,10 +4,10 @@
   "description": "Example FLORIS Input file",
   "farm": {
     "type": "farm",
-    "name": "farm_example_1x2",
-    "description": "Example 1x2 Wind Farm",
+    "name": "farm_example_1x1",
+    "description": "Example 1x1 Wind Farm",
     "properties": {
-      "wind_speed": 8.0,
+      "wind_speed": 10.0,
       "wind_direction": 270.0,
       "turbulence_intensity": 0.06,
       "wind_shear": 0.0,
@@ -99,7 +99,7 @@
           ]
         },
         "gauss": {
-          "ka": 0.3,
+          "ka": 0.3,   
           "kb": 0.004,
           "alpha": 0.58,
           "beta": 0.077,

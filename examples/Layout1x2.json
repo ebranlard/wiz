@@ -7,7 +7,7 @@
     "name": "farm_example_1x2",
     "description": "Example 1x2 Wind Farm",
     "properties": {
-      "wind_speed": 8.0,
+      "wind_speed": 10.0,
       "wind_direction": 270.0,
       "turbulence_intensity": 0.06,
       "wind_shear": 0.0,
@@ -15,7 +15,7 @@
       "air_density": 1.225,
       "layout_x": [
         0.0,
-        800.0
+        882.0
       ],
       "layout_y": [
         0.0,
@@ -85,7 +85,7 @@
         "jensen": {
           "we": 0.05
         },
-        "floris": {
+        "multizone": {
           "me": [
             -0.5,
             0.3,
