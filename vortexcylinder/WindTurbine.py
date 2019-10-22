@@ -81,6 +81,7 @@ class WindTurbine:
         self.Gamma_r=None
         self.Lambda=Lambda
         self.Ground=Ground # Ground effect will be included in calculation of induced velocity
+        self.chi=None
 
     def set_yaw0_coord(self,e_shaft_yaw0,e_vert):
         self.e_shaft_g = np.asarray(e_shaft_yaw0).ravel().reshape(3,1)
@@ -205,6 +206,8 @@ class WindTurbine:
         return points
 
 
+    def set_chi(self,chi):
+        self.chi=chi
     
     def compute_u(self,Xg,Yg,Zg,only_ind=False, longi=True, tang=True, root=True, no_wake=False, ground=None): # Transformtion from cylinder to global
         # Optional argument ground can overwrite self.Ground
@@ -215,7 +218,9 @@ class WindTurbine:
         Xc,Yc,Zc = transform_T(T_c2g, Xg,Yg,Zg)
         # Detecting whether our vertical convention match, and define chi
         e_vert_c = np.dot(T_c2g.T , self.e_vert_g)
-        self.chi= np.sign(e_vert_c.ravel()[1])* (self.yaw_wind-self.yaw_pos)
+        if self.chi is None:
+            # TODO TODO chi needs induction effect!
+            self.chi= np.sign(e_vert_c.ravel()[1])* (self.yaw_wind-self.yaw_pos)
         if self.gamma_t is None:
             raise Exception('Please set loading with `update_loading` before calling `compute_u`')
 
@@ -229,9 +234,9 @@ class WindTurbine:
         Xc0,Yc0,Zc0=Xc-Xcyl[0],Yc-Ycyl[0],Zc-Zcyl[0]
         if ground:
             # Mirror control points are two time the hub height above the cylinder
-            Yc0mirror=Yc+2*Ycyl[0]
+            Yc0mirror=Yc0+2*Ycyl[0]
             Ylist=[Yc0,Yc0mirror]
-            print('>>> Ground effect')
+            print('>>> Ground effect',Ycyl[0])
         else:
             Ylist=[Yc0]
 
@@ -256,7 +261,7 @@ class WindTurbine:
                     else:
                         uxc0,uyc0,uzc0 = vc_tang_u (Xc0,Y,Zc0,gamma_t=self.gamma_t,R=self.R    ,polar_out=False)
                         if iY==0:
-                            print('>> regular')
+                            pass
                         elif iY==1:
                             print('>> mirror')
                     uxc += uxc0
