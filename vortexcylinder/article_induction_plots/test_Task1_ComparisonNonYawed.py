@@ -13,7 +13,11 @@ import numpy as np
 # --- Local
 from vortexcylinder.VortexCylinder import vc_tang_u
 
-from pybra.colors import *
+try:
+    from pybra.colors import *
+except:
+    pass
+
 def get_cmap(minSpeed,maxSpeed):
     DS=0.0001
     # MathematicaDarkRainbow=[(60 /255,86 /255,146/255), (64 /255,87 /255,142/255), (67 /255,107/255,98 /255), (74 /255,121/255,69 /255), (106/255,141/255,61 /255), (159/255,171/255,67 /255), (207/255,195/255,77 /255), (223/255,186/255,83 /255), (206/255,128/255,76 /255), (186/255,61 /255,58 /255)]
@@ -118,7 +122,10 @@ def main(test=False):
 
     # --- Plot the contours of axial induction
     levels=[0.5,0.6,0.7,0.8,0.9,0.95,0.98,0.99,1.01,1.1]
-    cmap,_ = get_cmap(levels[0],levels[-1])
+    try:
+        cmap,_ = get_cmap(levels[0],levels[-1])
+    except:
+        cmap='coolwarm'
     fig=plt.figure()
     ax = fig.add_subplot(111)
     im=ax.pcolormesh (z, x, (uz+U0)/U0, vmin=levels[0], vmax=levels[-1], cmap=cmap)
