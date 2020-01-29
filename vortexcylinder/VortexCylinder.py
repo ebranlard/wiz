@@ -15,14 +15,48 @@ import numpy.matlib
 try:
     from .elliptic import ellipticPiCarlson, ellipe, ellipk
     from .VortexLine import vl_semiinf_straight_u
+    from .VortexDoublet import doublet_line_polar_u
 except:
     try:
         from vortexcylinder.elliptic import ellipticPiCarlson, ellipe, ellipk
+        from vortexcylinder.VortexDoublet import doublet_line_polar_u
         from vortexcylinder.VortexLine import vl_semiinf_straight_u
     except:
         from elliptic import ellipticPiCarlson, ellipe, ellipk
         from VortexLine import vl_semiinf_straight_u
+        from VortexDoublet import doublet_line_polar_u
 
+def vc_tang_u_doublet(Xcp,Ycp,Zcp,gamma_t=-1,R=1,r_bar_Cut=6,polar_out=True):
+    Xcp=np.asarray(Xcp)
+    shape_in=Xcp.shape
+    Xcp=Xcp.ravel()
+    Ycp=Ycp.ravel()
+    Zcp=np.asarray(Zcp).ravel()
+    Rcp  = np.sqrt(Xcp ** 2 + Ycp **2)
+    Rsph = np.sqrt(Rcp ** 2 + Zcp **2)
+    ur   = np.full(Xcp.shape,np.nan)
+    uz   = np.full(Xcp.shape,np.nan)
+    bCut = Rsph>r_bar_Cut*R
+    dmz_dz = gamma_t * R**2 * np.pi # doublet intensity per length
+
+    ur[~bCut],uz[~bCut] = vc_tang_u           (Xcp[~bCut],Ycp[~bCut],Zcp[~bCut],gamma_t=gamma_t,R=R,polar_out=True)
+    ur[ bCut],uz[ bCut] = doublet_line_polar_u(Rcp[ bCut],Zcp[ bCut],dmz_dz)
+
+
+    if polar_out:
+        ur = ur.reshape(shape_in)   
+        uz = uz.reshape(shape_in)   
+        return ur,uz
+    else:
+        psi = np.arctan2(Ycp,Xcp)     ;
+        ux=ur*np.cos(psi)
+        uy=ur*np.sin(psi)
+        ux = ux.reshape(shape_in)   
+        uy = uy.reshape(shape_in)   
+        uz = uz.reshape(shape_in)   
+        return ux,uy,uz
+
+    return ur, uz
 
 
 def vc_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,polar_out=True,epsilon=0):

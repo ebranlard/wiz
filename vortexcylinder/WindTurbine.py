@@ -6,16 +6,16 @@ import unittest
 import numpy as np
 # --- Local
 try:
-    from .VortexCylinder import vc_tang_u, vc_longi_u, vc_root_u, vcs_tang_u, vcs_longi_u
+    from .VortexCylinder import vc_tang_u, vc_longi_u, vc_root_u, vcs_tang_u, vcs_longi_u, vc_tang_u_doublet
     from .VortexCylinderSkewed import svc_tang_u, svc_longi_u, svc_root_u, svcs_tang_u, svcs_longi_u
     from .Solver import Ct_const_cutoff, WakeVorticityFromCt, WakeVorticityFromGamma
 except:
     try:
-        from vortexcylinder.VortexCylinder import vc_tang_u, vc_longi_u, vc_root_u, vcs_tang_u, vcs_longi_u
+        from vortexcylinder.VortexCylinder import vc_tang_u, vc_longi_u, vc_root_u, vcs_tang_u, vcs_longi_u, vc_tang_u_doublet
         from vortexcylinder.VortexCylinderSkewed import svc_tang_u, svc_longi_u, svc_root_u, svcs_tang_u, svcs_longi_u
         from vortexcylinder.Solver import Ct_const_cutoff, WakeVorticityFromCt, WakeVorticityFromGamma
     except:
-        from VortexCylinder import vc_tang_u,  vc_longi_u, vcs_tang_u, vc_root_u, vcs_longi_u
+        from VortexCylinder import vc_tang_u,  vc_longi_u, vcs_tang_u, vc_root_u, vcs_longi_u, vc_tang_u_doublet
         from VortexCylinderSkewed import svc_tang_u, svc_longi_u, svc_root_u, svcs_tang_u, svcs_longi_u
         from Solver import Ct_const_cutoff, WakeVorticityFromCt, WakeVorticityFromGamma
 
@@ -209,7 +209,7 @@ class WindTurbine:
     def set_chi(self,chi):
         self.chi=chi
     
-    def compute_u(self,Xg,Yg,Zg,only_ind=False, longi=True, tang=True, root=True, no_wake=False, ground=None): # Transformtion from cylinder to global
+    def compute_u(self,Xg,Yg,Zg,only_ind=False, longi=True, tang=True, root=True, no_wake=False, ground=None, doublet_far_field=False): # Transformtion from cylinder to global
         # Optional argument ground can overwrite self.Ground
         if ground is None:
             ground=self.Ground
@@ -259,7 +259,10 @@ class WindTurbine:
                     if np.abs(self.chi)>1e-7:
                         uxc0,uyc0,uzc0 = svc_tang_u(Xc0,Y,Zc0,gamma_t=self.gamma_t,R=self.R,m=m,polar_out=False)
                     else:
-                        uxc0,uyc0,uzc0 = vc_tang_u (Xc0,Y,Zc0,gamma_t=self.gamma_t,R=self.R    ,polar_out=False)
+                        if doublet_far_field:
+                            uxc0,uyc0,uzc0 = vc_tang_u_doublet(Xc0,Y  ,Zc0,gamma_t=self.gamma_t, R=self.R, polar_out=False,r_bar_Cut=6)
+                        else:
+                            uxc0,uyc0,uzc0 = vc_tang_u (Xc0,Y  ,Zc0,gamma_t=self.gamma_t, R=self.R, polar_out=False)
                         if iY==0:
                             pass
                         elif iY==1:

@@ -96,7 +96,7 @@ else:
     fig.subplots_adjust(left=0.035, right=0.990, top=0.96, bottom=0.08,hspace=0.17)
 
 # fig.savefig('Layout12.pdf',bbox_to_inches='tight',dpi=300)
-fig.savefig('Layout12.png',bbox_to_inches='tight',dpi=600)
+# fig.savefig('Layout12.png',bbox_to_inches='tight',dpi=600)
 
 plt.show()
 
