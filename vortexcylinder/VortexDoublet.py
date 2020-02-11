@@ -8,6 +8,7 @@ def doublet_u(Xcp,Ycp,Zcp,m,x0=[0,0,0]):
     Velocity field induced by one doublet located at x0 with vector intensity m
          u = 1/(4pi)       *( 3* r * m.r/|r|**5 - m/|r|**3)
          u = 1/(4pi |r|**3)*( 3* r * m.r/|r|**2 - m)
+    Xcp, Ycp, Zcp: Cartesian coordinates of control points
     """
     
     Xcp=np.asarray(Xcp)
@@ -46,6 +47,7 @@ def doublet_u_polar(rcp,zcp,m_z,z0=0):
     Velocity field induced by one doublet located at z0 on the z axis with vector intensity (0,0,mz)
          ur = 3 m_z /(4pi) r (z-z0) / |r|**5
          uz =   m_z /(4pi) (3 (z-z0)**2 / |r|**5 -1/|r|**3)
+    Control points defined by polar coordinates `rcp` and `zcp`.
     """
     if np.any(rcp<0):
         raise Exception('Script meant for positive r')
@@ -75,6 +77,12 @@ def doublet_u_polar(rcp,zcp,m_z,z0=0):
 # integrate[ 1/(r^2 + (z-x)^2 )^(3/2) dx , 0, infinity ]
 
 def doublet_line_polar_u_num(rcp,zcp,dmz_dz,z0,zmax,nQuad=100):
+    """
+    Velocity field induced by a doublet line (on the z axis) of intensity `dmz_dz`.
+    Control points defined by polar coordinates `rcp` and `zcp`.
+    The line goes from `z0` to `zmax`.
+    Numerical integration is used with `nQuad` quadrature points.
+    """
     rcp=np.asarray(rcp)
     zcp=np.asarray(zcp)
 
@@ -93,11 +101,16 @@ def doublet_line_polar_u_num(rcp,zcp,dmz_dz,z0,zmax,nQuad=100):
     return ur, uz
 
 def doublet_line_polar_u(rcp,zcp,dmz_dz):
+    """
+    Velocity field induced by a semi-infinite doublet line (on the z axis) of intensity `dmz_dz`
+    Control points defined by polar coordinates `rcp` and `zcp`.
+    """
     if np.any(rcp<0):
         raise Exception('Script meant for positive r')
     r=np.asarray(rcp)
     z=np.asarray(zcp)
 
+    # Vectorial "if" statements to isolate singular regions of the domain
     bZ0    = np.abs(z)<1e-16
     bR0    = np.abs(r)<1e-16
     bZ0R0  = np.logical_and(bZ0,bR0)
@@ -159,11 +172,11 @@ class TestDoublet(unittest.TestCase):
         R       = 10
         dmzdz   = np.pi * R**2 * gamma_t
 
-        # --- Singularity 0,0 (sould be infinity)
+        # --- Singularity 0,0 (should be infinity)
         u=doublet_line_polar_u  (0,0,dmzdz)
         np.testing.assert_almost_equal(u,(0,0))
 
-        # --- Formula on the z axis
+        # --- Formula on the z axis from analytical and numerical integration
         zcp = np.linspace(-10,-1,50)*R
         rcp = zcp*0 
         urn,uzn=doublet_line_polar_u_num(rcp,zcp,dmzdz,0,1000,10000)

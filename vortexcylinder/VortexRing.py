@@ -14,12 +14,17 @@ from scipy.special import ellipk, ellipe
 
 
 def ring_u_polar_singular(r,z,Gamma=-1,r0=1):
+    """ 
+    Induced velocity from a vortex ring of radius r0, located at z=0 
+    Polar coordinates in and out.
+    Singular formulation
+    """
     # Formulation from Yoon 2004
     a = np.sqrt((r+r0)**2 + (z)**2)
     m = 4 * r * r0 / (a ** 2)
     A = (z)**2 + r**2 + r0**2
     B = - 2*r*r0
-    I1 = 4.0 / a     * ellipk(m)
+    I1 = 4.0 / a    * ellipk(m)
     I2 = 4.0 / a**3 * ellipe(m) / (1 - m)
     ur = Gamma/(4*np.pi)*r0 * z/B *(I1 - A*I2)
     uz = Gamma/(4*np.pi)*r0*( (r0 + r*A/B)*I2 - r/B*I1)
@@ -27,7 +32,9 @@ def ring_u_polar_singular(r,z,Gamma=-1,r0=1):
 
 def ring_u_polar(r,z,Gamma=-1,r0=1,z0=0,epsilon=0, reg_method='Saffman'):
     """ 
-    Compute the induced velocity from a vortex ring of radius r0, located at z0, 
+    Induced velocity from a vortex ring of radius r0, located at z0, 
+    Polar coordinates in, and out.
+    Regularization implemented using `epsilon` and `reg_method`.  
     """
     EPSILON = 1e-07 # small value used for axis formula and singularity (when epsilon=0)
     # --- Main corpus
@@ -80,6 +87,7 @@ def ring_u_polar(r,z,Gamma=-1,r0=1,z0=0,epsilon=0, reg_method='Saffman'):
 def ring_u(Xcp,Ycp,Zcp,Gamma=-1,R=1,polar_out=True,epsilon=0):
     """ 
     Compute the induced velocity from a vortex ring located at z=0
+    Takes cartesian coordinates as input, returns polar or cart depending on `polar_out`
     """
     EPSILON = 1e-07
     # --- Main corpus
@@ -274,12 +282,12 @@ class TestRing(unittest.TestCase):
         pass
 
     def test_Ring_doublet_approx(self):
+        # Far away, the velocity field from a ring is similar to a doublet
         try:
             import VortexDoublet as vd
         except:
             print('Test skipped, vortex doublet missing')
             return
-        # Test the approximate axis formula, close to axis, eq 35.22 in reference [1]
         Gamma, R= -20000, 10
         mz= Gamma * np. pi * R**2 # Doublet intensity
 

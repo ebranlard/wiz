@@ -26,7 +26,14 @@ except:
         from VortexLine import vl_semiinf_straight_u
         from VortexDoublet import doublet_line_polar_u
 
-def vc_tang_u_doublet(Xcp,Ycp,Zcp,gamma_t=-1,R=1,r_bar_Cut=6,polar_out=True):
+def vc_tang_u_doublet(Xcp,Ycp,Zcp,gamma_t=-1,R=1,r_bar_Cut=6, polar_out=True):
+    """
+    Induced velocity from a semi infinite cylinder extending along the z axis, starting at z=0
+    Use a far field "doublet-line" velocity field to speed up computation.
+    The parameter `r_bar_Cut` defines the distance from (0,0) above which the doublet 
+        approximation is used.
+    See `vc_tang_u` for more.
+    """
     Xcp=np.asarray(Xcp)
     shape_in=Xcp.shape
     Xcp=Xcp.ravel()
@@ -39,7 +46,9 @@ def vc_tang_u_doublet(Xcp,Ycp,Zcp,gamma_t=-1,R=1,r_bar_Cut=6,polar_out=True):
     bCut = Rsph>r_bar_Cut*R
     dmz_dz = gamma_t * R**2 * np.pi # doublet intensity per length
 
+    # Standard cylinder formulation
     ur[~bCut],uz[~bCut] = vc_tang_u           (Xcp[~bCut],Ycp[~bCut],Zcp[~bCut],gamma_t=gamma_t,R=R,polar_out=True)
+    # Far field formulation
     ur[ bCut],uz[ bCut] = doublet_line_polar_u(Rcp[ bCut],Zcp[ bCut],dmz_dz)
 
 
