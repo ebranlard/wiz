@@ -4,8 +4,10 @@ InductionZone-DG
 *.egg-info
 *pytest_cache
 
+vortexcylinder/*.pdf
 vortexcylinder/fU*
 vortexcylinder/fV*
+vortexcylinder/_todo
 
 vortexcylinder/fGetInductions_Prescribed_CT_CQ2.py
 vortexcylinder/fInductionCoefficientsCylinders.py
