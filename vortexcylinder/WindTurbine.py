@@ -5,19 +5,11 @@ from __future__ import print_function
 import unittest
 import numpy as np
 # --- Local
-try:
-    from .VortexCylinder import vc_tang_u, vc_longi_u, vc_root_u, vcs_tang_u, vcs_longi_u, vc_tang_u_doublet
-    from .VortexCylinderSkewed import svc_tang_u, svc_longi_u, svc_root_u, svcs_tang_u, svcs_longi_u
-    from .Solver import Ct_const_cutoff, WakeVorticityFromCt, WakeVorticityFromGamma
-except:
-    try:
-        from vortexcylinder.VortexCylinder import vc_tang_u, vc_longi_u, vc_root_u, vcs_tang_u, vcs_longi_u, vc_tang_u_doublet
-        from vortexcylinder.VortexCylinderSkewed import svc_tang_u, svc_longi_u, svc_root_u, svcs_tang_u, svcs_longi_u
-        from vortexcylinder.Solver import Ct_const_cutoff, WakeVorticityFromCt, WakeVorticityFromGamma
-    except:
-        from VortexCylinder import vc_tang_u,  vc_longi_u, vcs_tang_u, vc_root_u, vcs_longi_u, vc_tang_u_doublet
-        from VortexCylinderSkewed import svc_tang_u, svc_longi_u, svc_root_u, svcs_tang_u, svcs_longi_u
-        from Solver import Ct_const_cutoff, WakeVorticityFromCt, WakeVorticityFromGamma
+from .VortexCylinder import vc_tang_u, vc_longi_u, vc_root_u, vcs_tang_u, vcs_longi_u, vc_tang_u_doublet
+from .VortexDoublet  import doublet_line_u
+from .SelfSimilar    import ss_u
+from .VortexCylinderSkewed import svc_tang_u, svc_longi_u, svc_root_u, svcs_tang_u, svcs_longi_u
+from .Solver import Ct_const_cutoff, WakeVorticityFromCt, WakeVorticityFromGamma
 
 try:
     from pybra.clean_exceptions import *
@@ -66,7 +58,7 @@ def transform(T_a2b,Xa,Ya,Za):
 # --- Main Class 
 # --------------------------------------------------------------------------------{
 class WindTurbine:
-    def __init__(self,R,r_hub=[0,0,0],e_shaft_yaw0=[0,0,1],e_vert=[0,1,0],U0=[0,0,10],Ct=None,Lambda=None,name='',Ground=False):
+    def __init__(self,R,r_hub=[0,0,0],e_shaft_yaw0=[0,0,1],e_vert=[0,1,0],U0=[0,0,10],Ct=None,Lambda=None,name='',Ground=False,Model='VC'):
         """ 
          - e_vert: vertical vector, about which yawing is done
         """
@@ -82,6 +74,7 @@ class WindTurbine:
         self.Lambda=Lambda
         self.Ground=Ground # Ground effect will be included in calculation of induced velocity
         self.chi=None
+        self.Model=Model
 
     def set_yaw0_coord(self,e_shaft_yaw0,e_vert):
         self.e_shaft_g = np.asarray(e_shaft_yaw0).ravel().reshape(3,1)
@@ -209,10 +202,13 @@ class WindTurbine:
     def set_chi(self,chi):
         self.chi=chi
     
-    def compute_u(self,Xg,Yg,Zg,only_ind=False, longi=True, tang=True, root=True, no_wake=False, ground=None, doublet_far_field=False): # Transformtion from cylinder to global
-        # Optional argument ground can overwrite self.Ground
+    def compute_u(self,Xg,Yg,Zg,only_ind=False, longi=True, tang=True, root=True, no_wake=False, ground=None, doublet_far_field=False, Model=None): # Transformtion from cylinder to global
+        # --- Optional argument overriding self
         if ground is None:
             ground=self.Ground
+        if Model is None:
+            Model=self.Model
+
         # Control points in "Cylinder coordinate system" (rotation only)
         T_c2g=np.dot(self.T_wt2g,self.T_c2wt)
         Xc,Yc,Zc = transform_T(T_c2g, Xg,Yg,Zg)
@@ -236,7 +232,7 @@ class WindTurbine:
             # Mirror control points are two time the hub height above the cylinder
             Yc0mirror=Yc0+2*Ycyl[0]
             Ylist=[Yc0,Yc0mirror]
-            print('>>> Ground effect',Ycyl[0])
+            #print('>>> Ground effect',Ycyl[0])
         else:
             Ylist=[Yc0]
 
@@ -257,59 +253,77 @@ class WindTurbine:
             for iY,Y in enumerate(Ylist):
                 if tang and (self.gamma_t!=0):
                     if np.abs(self.chi)>1e-7:
-                        uxc0,uyc0,uzc0 = svc_tang_u(Xc0,Y,Zc0,gamma_t=self.gamma_t,R=self.R,m=m,polar_out=False)
-                    else:
-                        if doublet_far_field:
-                            uxc0,uyc0,uzc0 = vc_tang_u_doublet(Xc0,Y  ,Zc0,gamma_t=self.gamma_t, R=self.R, polar_out=False,r_bar_Cut=6)
+                        if Model =='VC':
+                            uxc0,uyc0,uzc0 = svc_tang_u(Xc0,Y,Zc0,gamma_t=self.gamma_t,R=self.R,m=m,polar_out=False)
                         else:
-                            uxc0,uyc0,uzc0 = vc_tang_u (Xc0,Y  ,Zc0,gamma_t=self.gamma_t, R=self.R, polar_out=False)
-                        if iY==0:
-                            pass
-                        elif iY==1:
-                            print('>> mirror')
+                            raise NotImplementedError('Model'+Model)
+                    else:
+                        if Model =='VC':
+                            if doublet_far_field:
+                                uxc0,uyc0,uzc0 = vc_tang_u_doublet(Xc0,Y,Zc0, gamma_t=self.gamma_t, R=self.R, polar_out=False,r_bar_Cut=6)
+                            else:
+                                uxc0,uyc0,uzc0 = vc_tang_u        (Xc0,Y,Zc0, gamma_t=self.gamma_t, R=self.R, polar_out=False)
+                        elif Model =='VD':
+                            uxc0,uyc0,uzc0 = doublet_line_u(Xc0, Y, Zc0, dmz_dz = self.gamma_t * self.R**2 * np.pi)
+                        elif Model =='SS':
+                            uzc0 = ss_u          (Xc0, Y, Zc0, gamma_t=self.gamma_t, R=self.R)
+                            uxc0=uzc0*0
+                            uyc0=uzc0*0
+                        else:
+                            raise NotImplementedError('Model'+Model)
                     uxc += uxc0
                     uyc += uyc0
                     uzc += uzc0
                 if longi and (self.gamma_l is not None) and self.gamma_l!=0 :
                     if np.abs(self.chi)>1e-7:
-                        uxc0,uyc0,uzc0 = svc_longi_u(Xc0,Y,Zc0,gamma_l=self.gamma_l,R=self.R,m=m,polar_out=False)
+                        if Model =='VC':
+                            uxc0,uyc0,uzc0 = svc_longi_u(Xc0,Y,Zc0,gamma_l=self.gamma_l,R=self.R,m=m,polar_out=False)
+                        else:
+                            raise NotImplementedError('Model'+Model)
                     else:
-                        uxc0,uyc0,uzc0 = vc_longi_u (Xc0,Y,Zc0,gamma_l=self.gamma_l,R=self.R    ,polar_out=False)
+                        if Model =='VC':
+                            uxc0,uyc0,uzc0 = vc_longi_u (Xc0,Y,Zc0,gamma_l=self.gamma_l,R=self.R    ,polar_out=False)
+                        else:
+                            raise NotImplementedError('Model'+Model)
                     uxc += uxc0
                     uyc += uyc0
                     uzc += uzc0
         else:
             # --- Tangential and longi - MULTI Cylinders
-            nr   = len(self.r)
-            nWT = 1
-            # Control points are directly translated by routine
-            gamma_t = self.gamma_t.reshape((nWT,nr))
-            if self.gamma_l is not None:
-                gamma_l = self.gamma_l.reshape((nWT,nr))
-            vR      = self.r.reshape((nWT,nr))
-            vm       = m* np.ones((nWT,nr))
-            if tang:
-                if np.abs(self.chi)>1e-7:
-                    uxc0,uyc0,uzc0 = svcs_tang_u(Xc,Yc,Zc,gamma_t=gamma_t,R=vR,m=vm,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl,Ground=ground)
-                else:
-                    uxc0,uyc0,uzc0 = vcs_tang_u (Xc,Yc,Zc,gamma_t=gamma_t,R=vR    ,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl, Ground=ground)
-                uxc += uxc0
-                uyc += uyc0
-                uzc += uzc0
-            if longi and (self.gamma_l is not None):
-                if np.abs(self.chi)>1e-7:
-                    uxc0,uyc0,uzc0 = svcs_longi_u(Xc,Yc,Zc,gamma_l=gamma_l,R=vR,m=vm,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl, Ground=ground)
-                else:
-                    uxc0,uyc0,uzc0 = vcs_longi_u (Xc,Yc,Zc,gamma_l=gamma_l,R=vR      ,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl, Ground=ground)
-                uxc += uxc0
-                uyc += uyc0
-                uzc += uzc0
+            if Model =='VC':
+                nr   = len(self.r)
+                nWT = 1
+                # Control points are directly translated by routine
+                gamma_t = self.gamma_t.reshape((nWT,nr))
+                if self.gamma_l is not None:
+                    gamma_l = self.gamma_l.reshape((nWT,nr))
+                vR      = self.r.reshape((nWT,nr))
+                vm       = m* np.ones((nWT,nr))
+                if tang:
+                    if np.abs(self.chi)>1e-7:
+                        uxc0,uyc0,uzc0 = svcs_tang_u(Xc,Yc,Zc,gamma_t=gamma_t,R=vR,m=vm,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl,Ground=ground)
+                    else:
+                        uxc0,uyc0,uzc0 = vcs_tang_u (Xc,Yc,Zc,gamma_t=gamma_t,R=vR    ,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl, Ground=ground)
+                    uxc += uxc0
+                    uyc += uyc0
+                    uzc += uzc0
+                if longi and (self.gamma_l is not None):
+                    if np.abs(self.chi)>1e-7:
+                        uxc0,uyc0,uzc0 = svcs_longi_u(Xc,Yc,Zc,gamma_l=gamma_l,R=vR,m=vm,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl, Ground=ground)
+                    else:
+                        uxc0,uyc0,uzc0 = vcs_longi_u (Xc,Yc,Zc,gamma_l=gamma_l,R=vR      ,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl, Ground=ground)
+                    uxc += uxc0
+                    uyc += uyc0
+                    uzc += uzc0
+            else:
+                raise NotImplementedError('Model'+Model)
         if no_wake:
 #             uxc[:]=0
 #             uyc[:]=0
 #             uzc[:]=1
             # Zero wake induction
-            bDownStream=Zc0>=0
+            bDownStream=Zc0>=-0.20*self.R
+#             bDownStream=Zc0>=0
             Rc = np.sqrt(Xc0**2 + Yc0**2)
             bRotorTube = Rc<self.R
             bSelZero = np.logical_and(bRotorTube,bDownStream)

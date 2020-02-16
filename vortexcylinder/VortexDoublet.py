@@ -138,6 +138,16 @@ def doublet_line_polar_u(rcp,zcp,dmz_dz):
 
     return ur, uz
 
+def doublet_line_u(Xcp,Ycp,Zcp,dmz_dz):
+    """ 
+    INPUTS:
+       Xcp,Ycp,Zcp: vector or matrix of control points Cartesian Coordinates
+    """
+    vr, vpsi = np.sqrt(Xcp**2+Ycp**2), np.arctan2(Ycp,Xcp) # polar coords
+    ur,uz=doublet_line_polar_u(vr,Zcp,dmz_dz)
+    ux=ur*np.cos(vpsi)
+    uy=ur*np.sin(vpsi)
+    return ux,uy,uz 
 
 
 

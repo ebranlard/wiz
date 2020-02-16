@@ -26,6 +26,8 @@ def ss_u(Xcp, Ycp, Zcp, gamma_t, R=1, lambda_= 0.587, eta=1.32):
 
     ui0_x = ui0*(1 + z/np.sqrt(z**2 + R**2))          # Eq. (7) from [1]
     uz    = ui0_x * FEPS
+    bWake=Zcp>0
+    uz[bWake]=0
     return uz
 
 class TestSimilarity(unittest.TestCase):
