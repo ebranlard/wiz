@@ -17,10 +17,10 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from wiz.VortexRing    import ring_u
 from wiz.VortexDoublet import doublet_u
 try:
-    from pybra.colors import darkrainbow, adjust_color_lightness, manual_colorbar
     from pybra.curves import streamQuiver
 except:
-    raise Exception('This script requires the package `pybra` from https://github.com/ebranlard/pybra/')
+    def streamQuiver(*args, **kwargs):
+        pass
 
 # --- Parameters
 R     = 1

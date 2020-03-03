@@ -12,11 +12,12 @@ import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 # --- Local
 from wiz.VortexDoublet import *
+from tictoc import Timer
 try:
     from pybra.curves import streamQuiver
-    from pybra.tictoc import Timer
 except:
-    raise Exception('This script requires the package `pybra` from https://github.com/ebranlard/pybra/')
+    def streamQuiver(*args, **kwargs):
+        pass
 
 # --- Parameters
 R      = 1

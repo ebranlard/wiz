@@ -30,7 +30,7 @@ def main():
     U0_g = [U0*np.cos(wd),U0*np.sin(wd),0] 
 
     # --- Creating wind farm (list of WT)
-    WF = WindFarm()
+    WF = WindFarm(name='2x1')
     for r_hub in Layout:
         WF.append( WindTurbine(R=R, e_shaft_yaw0=[1,0,0],e_vert=[0,0,1], r_hub=r_hub) )
     print(WF)

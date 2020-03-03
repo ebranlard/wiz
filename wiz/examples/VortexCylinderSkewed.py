@@ -25,18 +25,11 @@ import os
 from wiz.VortexCylinderSkewed import svc_tang_u
 from wiz.VortexCylinder       import vc_tang_u
 from wiz.VortexRing import rings_u
+from tictoc import Timer
 try:
-    from pybra.colors import darkrainbow
-    from pybra.colors import manual_colorbar
-    from pybra.curves import streamQuiver
-    from pybra.lic    import lic
-    from pybra.tictoc import Timer
-    cmap = darkrainbow
+    from pybra.colors import darkrainbow as cmap
 except:
     cmap = plt.cm.get_cmap("jet")
-#     raise Exception('This script requires the package `pybra` from https://github.com/ebranlard/pybra/')
-# for nD in [0,2,4]:
-# for nD in [0,2,4]:
 
 # --- Parameters
 bWindCoord  = True
@@ -46,7 +39,7 @@ r_hub     = 0.1*R
 CLIM = [0.4,1.1]
 
 LIM       = [-2,2] # 
-nx        = 100    # Number of points for velocity evaluation
+nx        = 30    # Number of points for velocity evaluation
 CT        = 0.6
 theta_yaw = 30*np.pi/180   # rad
 U0        = 1
@@ -97,11 +90,11 @@ for nD in [0,4]:
     X_c,Y_c,Z_c = Tw2c(X_w,Y_w,Z_w) 
 
     with Timer('Computing for D={} - cylinder'.format(nD)):
-        ux_c,uy_c,uz_c,_,_   =svc_tang_u(X_c,Y_c,Z_c,gamma_t,R,m)
-        ux_c0,uy_c0,uz_c0,_,_=svc_tang_u(0,0,0      ,gamma_t,R,m)
+        ux_c,uy_c,uz_c   =svc_tang_u(X_c,Y_c,Z_c,gamma_t,R,m)
+        ux_c0,uy_c0,uz_c0=svc_tang_u(0,0,0      ,gamma_t,R,m)
         print('uz0',uz_c0)
         if bRootVortex:
-            ux_c_root,uy_c_root,uz_c_root,_,_=svc_tang_u(X_c,Y_c,Z_c,-gamma_t,r_hub,m)
+            ux_c_root,uy_c_root,uz_c_root=svc_tang_u(X_c,Y_c,Z_c,-gamma_t,r_hub,m)
             ux_c += ux_c_root
             uy_c += uy_c_root
             uz_c += uz_c_root
@@ -183,22 +176,5 @@ for nD in [0,4]:
     plot(ux_r,uy_r,uz_r,' rings'   ,clim=CLIM)
 
 plt.show()
-
-
-# Colorbar
-# cax = divider.append_axes("right", size="5%", pad=0.20)
-# manual_colorbar(fig,cmap,cax=cax)
-# Streamlines
-# yseed=np.linspace(-0.88,0.88,7)
-# start=np.array([yseed*0,yseed])
-# sp=ax.streamplot(x_w,y_w,ux,uy,color='k',linewidth=0.7,density=1)
-# # sp=ax.streamplot(x_w,y_w,ux,uy,color='k',start_points=start.T,linewidth=0.7,density=30,arrowstyle='-')
-# # qv=streamQuiver(ax,sp,spacing=0.8,scale=40,angles='xy')
-# # qv=streamQuiver(ax,sp,n=[1,5,5,5,5,5,1],scale=40,angles='xy')
-# ax.set_xlabel('x/R [-]')
-# ax.set_ylabel('y/R [-]')
-# 
-
-# plt.show()
 
 

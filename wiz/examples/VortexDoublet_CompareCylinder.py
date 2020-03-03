@@ -13,18 +13,19 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 # --- Local
 from wiz.VortexDoublet import *
 from wiz.VortexCylinder import *
+from tictoc import Timer
 try:
     from pybra.curves import streamQuiver
-    from pybra.tictoc import Timer
 except:
-    raise Exception('This script requires the package `pybra` from https://github.com/ebranlard/pybra/')
+    def streamQuiver(*args, **kwargs):
+        pass
 
 # --- Parameters
 R      = 10
 gamma_t=-10
 XLIM  = np.asarray([0.01*R,10*R ]) # 
 ZLIM  = np.asarray([-10*R,0.01*R]) # 
-nx    = 2100                   # Number of points for velocity evaluation
+nx    = 210                   # Number of points for velocity evaluation
 nz    = nx
 bLog  = False # take logarithm of speed
 # bLog  = True # take logarithm of speed
@@ -44,7 +45,7 @@ Y=X*0
 with Timer('Cylinder'):
     urt,uzt = vc_tang_u(X,Y,Z,gamma_t=gamma_t,R=R,polar_out=True)
 with Timer('Cylinder Doublet'):
-    urt,uzt = vc_tang_u_doublet(X,Z,gamma_t=gamma_t,R=R)
+    urt,uzt = vc_tang_u_doublet(X,X*0,Z,gamma_t=gamma_t,R=R)
 with Timer('Doublet'):
     urn,uzn = doublet_line_polar_u(X,Z,dmz_dz)
 

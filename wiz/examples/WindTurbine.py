@@ -4,12 +4,10 @@ from __future__ import print_function
 # --- General
 import unittest
 import numpy as np
+import matplotlib.pyplot as plt
 # --- Local
 from wiz.WindTurbine import WindTurbine
 from wiz.Solver import Ct_const_cutoff
-
-# --------------------------------------------------------------------------------}
-import matplotlib.pyplot as plt
 
 def main():
     Ground    = False
