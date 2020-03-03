@@ -5,7 +5,7 @@
 
 Wake and induction zone models for wind farm calculations. 
 
-Please note that this repository is still under active developement development. 
+Please note that this repository is still under active development. 
 
 Four main induction models are implemented:
   - "VC": vortex cylinder (VC) model 
