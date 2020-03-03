@@ -59,16 +59,16 @@ def get_cmap(minSpeed,maxSpeed):
 
 
 
-def get_HH_plane_vel(input_file, VC_Opts, resolution=Vec3(232, 114, 3),bounds_to_set=None):
+def get_HH_plane_vel(input_file, Ind_Opts, resolution=Vec3(232, 114, 3),bounds_to_set=None):
     fi = wfct.floris_utilities.FlorisInterface(input_file)
     # Calculate wake
-    fi.calculate_wake(VC_Opts=VC_Opts)
+    fi.calculate_wake(Ind_Opts=Ind_Opts)
 
-    #fd=fi.get_flow_data(resolution = resolution, VC_Opts=VC_Opts)
+    #fd=fi.get_flow_data(resolution = resolution, Ind_Opts=Ind_Opts)
     
     # # Initialize the horizontal cut
     hor_plane = wfct.cut_plane.HorPlane(
-        fi.get_flow_data(resolution = resolution, VC_Opts=VC_Opts, bounds_to_set=bounds_to_set),
+        fi.get_flow_data(resolution = resolution, Ind_Opts=Ind_Opts, bounds_to_set=bounds_to_set),
         fi.floris.farm.turbines[0].hub_height
     )
     u_mesh = hor_plane.u_mesh.reshape(hor_plane.resolution[1], hor_plane.resolution[0])
