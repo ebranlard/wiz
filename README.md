@@ -25,7 +25,7 @@ make                                                 # run tests
 ```
 If the unittests do not run, check the installation process and post an issue. 
 
-If you which to use FLORIS, continue with the following commands:
+If you wish to use FLORIS, continue with the following commands:
 ```bash
 git submodule update --init
 cd floris
