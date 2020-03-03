@@ -10,16 +10,17 @@ from wiz.WindTurbine import WindTurbine
 from wiz.WindFarm import WindFarm
 
 def main():
-    Ground    = True #
-    no_wake   = True   # Set to True when coupled to a wake model
-    R         = 65
-    h_hub     = 0.0*R
-    CT0       = 0.80
-    U0        = 10            # Free stream velocity [m/s]
-    R         = 65            # Wind turbine radius
-    wd        = 0*np.pi/180   # Wind direction [rad]
-    ye        = 0*np.pi/180   # Yaw error [rad]
-    Model     = 'VCFF'        # Model used for flow computation ['VC','VCFF','VD','SS']
+    # --- Parameters for this sript
+    Model    = 'VC'         # Model used for flow computation ['VC','VCFF','VD','SS']
+    Ground   = True         # Add ground effect
+    no_wake  = False        # Removes wake - set to True when coupled to a wake model
+    R        = 65           # Rotor radius [m]
+    h_hub    = 1.5*R        # Hub height [m] 
+    CT0      = 0.80         # Turbine CT [-]
+    U0       = 10           # Free stream velocity [m/s]
+    R        = 65           # Wind turbine radius
+    wd       = 0*np.pi/180  # Wind direction [rad]
+    ye       = 0*np.pi/180  # Yaw error [rad], note: turbine yaw = WD- YE
 
     Layout = np.array([     
             [0,-3*R, h_hub],
@@ -51,7 +52,7 @@ def main():
 
     fig=plt.figure()
     ax=fig.add_subplot(111)
-    Speed=np.sqrt(ux**2)
+    Speed=np.sqrt(ux**2+uy**2)
     Speed[Speed>U0*1.5]=U0*1.5
     im=ax.contourf(X/R,Y/R,Speed)#,levels=30,vmin=0,vmax=1.0)
     for WT in WF:
@@ -61,6 +62,7 @@ def main():
     sp=ax.streamplot(x/R,y/R,ux,uy,color='k',linewidth=0.7,density=2)
     ax.set_xlabel('x/R [-]')
     ax.set_ylabel('y/R [-]')
+    ax.set_aspect('equal')
     plt.show()
 
 if __name__ == "__main__":

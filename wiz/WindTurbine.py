@@ -241,8 +241,6 @@ class WindTurbine:
             ground=self.Ground
         if Model is None:
             Model=self.Model
-        if  Model=='VCFF':
-            Model='VC'
 
         # Control points in "Cylinder coordinate system" (rotation only)
         T_c2g=np.dot(self.T_wt2g,self.T_c2wt)
@@ -291,7 +289,7 @@ class WindTurbine:
                         if Model =='VC':
                             uxc0,uyc0,uzc0 = svc_tang_u(Xc0,Y,Zc0,gamma_t=self.gamma_t,R=self.R,m=m,polar_out=False)
                         else:
-                            raise NotImplementedError('Model'+Model)
+                            raise NotImplementedError('Model '+Model + ', with yaw.')
                     else:
                         if Model =='VC':
                                 uxc0,uyc0,uzc0 = vc_tang_u        (Xc0,Y,Zc0, gamma_t=self.gamma_t, R=self.R, polar_out=False)
@@ -313,12 +311,12 @@ class WindTurbine:
                         if Model =='VC':
                             uxc0,uyc0,uzc0 = svc_longi_u(Xc0,Y,Zc0,gamma_l=self.gamma_l,R=self.R,m=m,polar_out=False)
                         else:
-                            raise NotImplementedError('Model'+Model)
+                            raise NotImplementedError('Model '+Model + ', longi component.')
                     else:
                         if Model =='VC':
                             uxc0,uyc0,uzc0 = vc_longi_u (Xc0,Y,Zc0,gamma_l=self.gamma_l,R=self.R    ,polar_out=False)
                         else:
-                            raise NotImplementedError('Model'+Model)
+                            raise NotImplementedError('Model'+Model + ', longi component.')
                     uxc += uxc0
                     uyc += uyc0
                     uzc += uzc0
@@ -350,7 +348,7 @@ class WindTurbine:
                     uyc += uyc0
                     uzc += uzc0
             else:
-                raise NotImplementedError('Model'+Model)
+                raise NotImplementedError('Model'+Model, 'with multiple cylinders')
         if no_wake:
 #             uxc[:]=0
 #             uyc[:]=0
