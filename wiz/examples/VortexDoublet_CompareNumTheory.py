@@ -20,10 +20,12 @@ except:
         pass
 
 # --- Parameters
+bPolar = False
+m      = np.tan(0*np.pi/180) 
 R      = 1
 gamma_t=-10
 XLIM  = np.asarray([0.01*R,5*R ]) # 
-ZLIM  = np.asarray([-5*R,1*R]) # 
+ZLIM  = np.asarray([-5*R,-1*R]) # 
 ZMax  = 100*R  # Extent of line for numerical integration
 nQuad = 1000   # Numbero of quadrature points for numerical integration
 nx    = 200                    # Number of points for velocity evaluation
@@ -38,9 +40,15 @@ xs = np.linspace(XLIM[0]*1.1,XLIM[1]*1.1,nx).astype(np.float32)
 [Z,X]=np.meshgrid(zs,xs)
 Y=X*0
 with Timer('Theory'):
-    urt,uzt = doublet_line_polar_u    (X,Z,dmz_dz)
+    if bPolar:
+        urt,uzt = doublet_line_polar_u    (X,Z,dmz_dz)
+    else:
+        urt,_,uzt = doublet_line_u    (X,Y,Z,dmz_dz, m=m)
 with Timer('Numerical'):
-    urn,uzn = doublet_line_polar_u_num(X,Z,dmz_dz, 0, ZMax, nQuad)
+    if bPolar and m==0:
+        urn,uzn = doublet_line_polar_u_num(X,Z,dmz_dz,  zmax=ZMax, nQuad=nQuad)
+    else:
+        urn,_,uzn = doublet_line_u_num(X,Y,Z,dmz_dz, m=m, zmax=ZMax, nQuad=nQuad)
 
 Speed_t=np.log(np.sqrt(uzt**2+urt**2))
 Speed_n=np.log(np.sqrt(uzn**2+urn**2))
