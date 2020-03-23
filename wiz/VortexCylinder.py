@@ -116,7 +116,7 @@ def vc_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,polar_out=True,epsilon=0):
     PI[r==R]=0 ; # when r==R, PI=0 TODO, check
     KK[KK==np.inf]=0 ; # when r==R, K=0  TODO, check
     # ---
-    ur[bnIz] = -gamma_t/(2*np.pi) * np.multiply(np.sqrt(R/r) , np.multiply((2-k_2)/k,KK) - np.multiply(2.0/k, EE))
+    ur[bnIz] = -gamma_t/(2*np.pi) * np.sqrt(R/r) *( (2-k_2)/k * KK - 2.0/k* EE)
     # Term 1 has a singularity at r=R, # T1 = (R-r + np.abs(R-r))/(2*np.abs(R-r))
     T1=np.zeros(r.shape) 
     T1[r==R] = 1/2
@@ -126,7 +126,7 @@ def vc_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,polar_out=True,epsilon=0):
         epsilon2= r*0+epsilon**2
         b=z>=0
         T1[b]=1/2*(1 + (R-r[b])*np.sqrt(1+epsilon2[b]/(R+r[b])**2)/np.sqrt((R-r[b])**2 +epsilon2[b]))
-    uz[bnIz] = gamma_t/2*( T1 + np.multiply(np.multiply(z,k) / (2 * np.pi * np.sqrt(r * R)),(KK + np.multiply((R - r)/(R + r),PI))))
+    uz[bnIz] = gamma_t/2*( T1 + z*k/(2*np.pi*np.sqrt(r * R)) *(KK + (R - r)/(R + r)*PI ) )
     
     if polar_out:
         return ur,uz
