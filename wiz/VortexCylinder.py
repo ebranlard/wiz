@@ -112,7 +112,7 @@ def vc_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,polar_out=True,epsilon=0):
     #     PI = ellippi(k0_2,k_2)
     PI = ellipticPiCarlson(k0_2,k_2)
     # --- Special values
-    PI[PI==np.inf]==0
+    PI[PI==np.inf]=0
     PI[r==R]=0 ; # when r==R, PI=0 TODO, check
     KK[KK==np.inf]=0 ; # when r==R, K=0  TODO, check
     # ---
