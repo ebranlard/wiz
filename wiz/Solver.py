@@ -234,6 +234,7 @@ def WakeVorticityFromCirculation_Discr(r_cp,Gamma_cp,R,U0,Omega,nB,bSwirl,method
                 gamma_t_bar[i] = - b[i] + np.sqrt(Sbis[i]) #Eq.(28)
             else:
                 gamma_t_bar[i] = - b[i] + np.sqrt(S[i]) 
+#             print('b',b,'S',S)
             if bHighThrustCorr:
                 if (Cteff[i] > Ct_c):
                     aeff = (Cteff[i] - 4*ac**2)/(4*(1-2*ac)) # Eq.(40)
@@ -242,6 +243,7 @@ def WakeVorticityFromCirculation_Discr(r_cp,Gamma_cp,R,U0,Omega,nB,bSwirl,method
             #    gamma_t_bar[i] = - b[i] + 0
         Vc      = U0 * (b + gamma_t_bar / 2)
         h       = 2*np.pi*Vc/(Omega*(1+ap_cyl_conv))
+        #print('Vc',Vc,'b',b,'gamma_t_bar',gamma_t_bar,'ap',ap_cyl_conv,'Omega',Omega,'h',h)
 
 
         # Analytical 1
@@ -265,6 +267,7 @@ def WakeVorticityFromCirculation_Discr(r_cp,Gamma_cp,R,U0,Omega,nB,bSwirl,method
         misc['a_prime'] = a_prime
         misc['Gamma_cp'] = Gamma_cp
         misc['r_cp'] = r_cp
+        misc['h']     = h
 
         # --- Vortex intensities
         Gamma_tilde = Gamma_cp - np.concatenate((Gamma_cp[1:],[0])) #Gamma_tilde = Gamma_i-Gamma_{i+1}
@@ -288,7 +291,7 @@ def WakeVorticityFromCirculation_Discr(r_cp,Gamma_cp,R,U0,Omega,nB,bSwirl,method
 def WakeVorticityFromCt(r,Ct,R,U0,Omega):
     """ Returns the wake vorticity intensity for a given Ct"""
     if Omega==np.inf:
-        Omega=300 # TODO, implement infinite lambd formulae directly
+        Omega=800 # TODO, implement infinite lambd formulae directly
     Lambda=Omega*R/U0
     bSwirl=Lambda<20
     vk=CirculationFromPrescribedCt(r/R,Ct,Lambda,bSwirl)
@@ -298,7 +301,7 @@ def WakeVorticityFromCt(r,Ct,R,U0,Omega):
 def WakeVorticityFromGamma(r,Gamma,R,U0,Omega):
     """ Returns the wake vorticity intensity for a given circulation """
     if Omega==np.inf:
-        Omega=300 # TODO, implement infinite lambd formulae directly
+        Omega=800 # TODO, implement infinite lambd formulae directly
     Lambda=Omega*R/U0
     bSwirl=Lambda<20
     return WakeVorticityFromCirculation_Discr(r,Gamma,R,U0,Omega,nB=1,bSwirl=bSwirl)
@@ -343,36 +346,35 @@ class TestSolver(unittest.TestCase):
         #import matplotlib.pyplot as plt
         #if bSwirl:
         #    plt.figure()
-        #    plt.plot(vr_bar,gamma_l_d, label='discrete formulation')
-        #    plt.plot(vr_bar,gamma_l_c, label='continuous formulation')
+        #    plt.plot(vr_bar,gamma_l_d,'-d', label='discrete formulation')
+        #    plt.plot(vr_bar,gamma_l_c,'-o', label='continuous formulation')
         #    plt.legend()
         #    plt.ylabel('$\gamma_l$ [-]')
         #    plt.xlabel('$r/R$ [-]')
         #    plt.title('SuperpCylindersvsADk')
-
         #plt.figure()
-        #plt.plot(vr_bar,gamma_t_d, label='discrete formulation')
-        #plt.plot(vr_bar,gamma_t_c, label='continuous formulation')
+        #plt.plot(vr_bar,2*lambda_r*a_prime_VC_d,'-d',label='KJ Discr')
+        #plt.plot(vr_bar,2*lambda_r*a_prime_VC_c,'-o', label='KJ Cont')
         #plt.legend()
-        #plt.ylabel('$\gamma_t$ [-]')
-        #plt.xlabel('$r/R$ [-]')
-        #plt.title('SuperpCylindersvsADk')
+        #plt.ylabel('v_t/U_0 = 2a \lambda_r [-]')
+        #plt.xlabel('r/R [-]')
+        #plt.title('SuperpCylindersvsADTangentialVelocity')
 
         #plt.figure()
         #plt.plot(vr_bar,1-a_VC_d,'-d',label = 'KJ Disc')
-        #plt.plot(vr_bar,1-a_VC_c,'o' ,label = 'KJ Cont')
+        #plt.plot(vr_bar,1-a_VC_c,'-o' ,label = 'KJ Cont')
         #plt.legend()
         #plt.ylabel('v_a/U_0 = 1-a [-]')
         #plt.xlabel('r/R [-]')
         #plt.title('SuperpCylindersvsADAxialVelocity')
 
         #plt.figure()
-        #plt.plot(vr_bar,2*lambda_r*a_prime_VC_d,'-d',label='KJ Discr')
-        #plt.plot(vr_bar,2*lambda_r*a_prime_VC_c,'o', label='KJ Cont')
+        #plt.plot(vr_bar,gamma_t_d,'-d', label='discrete formulation')
+        #plt.plot(vr_bar,gamma_t_c,'-o', label='continuous formulation')
         #plt.legend()
-        #plt.ylabel('v_t/U_0 = 2a \lambda_r [-]')
-        #plt.xlabel('r/R [-]')
-        #plt.title('SuperpCylindersvsADTangentialVelocity')
+        #plt.ylabel('$\gamma_t$ [-]')
+        #plt.xlabel('$r/R$ [-]')
+        #plt.title('SuperpCylindersvsADk')
         #plt.show()
 
         ###

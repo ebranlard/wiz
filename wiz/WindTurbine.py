@@ -120,9 +120,23 @@ class WindTurbine:
     def update_wind(self,U0_g):
         self.U0_g = np.asarray(U0_g).ravel().reshape(3,1)
 
-    def update_loading(self,r=None,Ct=None,Gamma=None,Lambda=None,nCyl=1):
+    def update_loading(self,r=None,Ct=None,Gamma=None,Lambda=None,nCyl=1,gamma_t_Ct=None):
         """ 
-        Update turbine loading: either the Ct distribution or the Gamma distribution
+        Computes relevant parameters when the turbine loading is updated, mainly, gamma_t, 
+        the intensity of the tangential vorticity sheet.
+        The ditributon will be determined based on the inputs, with one these three approaches:
+           1. Ct(r) distribution
+           2. Gamma(r) distribution
+           3. gamma_t(Ct(r)) function
+
+        INPUTS:
+          r: radial coordinates at which Ct or Gamma are provided
+          Ct: local thrust coefficient (Ct(r), array), or total thrust coefficient (CT, scalar)
+          Gamma:  bound circulation (Gamma(r), array), or total rotor circulation (Gamma_tot, scalar)
+          Lambda: tip speed ratio (assumed infinite if None)
+          nCyl : number of cylindrical model used in the spanwise direction (default is 1)
+                 The circulation (gamma_t) will be determined for each of the radial cylinder
+          gamma_t_Ct: function that provides gamma_t as function of Ct (or gamma_t as function of CT)
         """
         U0=np.linalg.norm(self.U0_g)
 
@@ -148,18 +162,28 @@ class WindTurbine:
         if Lambda is None:
             raise Exception('Provide `Lambda` for update_loading. (Note: `Lambda=np.Inf` supported) ')
         Omega = Lambda*U0/self.R
+        #print('U0',U0)
+        #print('Ct',Ct)
 
         # Computing and storing gamma distribution and loading
-        if Ct is not None:
+        if gamma_t_Ct is not None:
+            if Ct is None:
+                raise Exception('Provide `Ct` along `gamma_t_Ct`')
+            self.gamma_t = gamma_t_Ct(Ct)
+            self.gamma_l=None # TODO
+            self.Gamma_r=None # TODO
+        elif Ct is not None:
             self.gamma_t,self.gamma_l,self.Gamma_r,misc=WakeVorticityFromCt(r,Ct,self.R,U0,Omega)
         elif Gamma is not None:
             self.gamma_t,self.gamma_l,self.Gamma_r,misc=WakeVorticityFromGamma(r,Gamma,self.R,U0,Omega)
         else:
             raise Exception('Unknown loading spec')
+        #self.gamma_t=self.gamma_t*1.06
         #print('gamma_t    ',self.gamma_t)
         #print('gamma_l    ',self.gamma_l)
         #print('Gamma_r    ',self.Gamma_r)
         #print('Gamma_/2piR',-self.Gamma_r/(2*np.pi*self.R))
+        #print(misc)
         self.Lambda=Lambda
         self.r=r
         self.Ct=Ct
@@ -327,6 +351,8 @@ class WindTurbine:
                 nWT = 1
                 # Control points are directly translated by routine
                 gamma_t = self.gamma_t.reshape((nWT,nr))
+#                 print('r      ',self.r)
+#                 print('gamma_t',gamma_t)
                 if self.gamma_l is not None:
                     gamma_l = self.gamma_l.reshape((nWT,nr))
                 vR      = self.r.reshape((nWT,nr))

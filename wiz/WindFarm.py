@@ -34,6 +34,9 @@ class WindFarm(list):
             U0     : vector of size 3, in global coordinates, representing the free stream to be added
                      If None, no velocity field is added to the induction field
         """
+        X=np.asarray(X)
+        Y=np.asarray(Y)
+        Z=np.asarray(Z)
         ux, uy, uz = np.zeros(X.shape), np.zeros(X.shape), np.zeros(X.shape)
 
         for WT in self:

@@ -174,13 +174,13 @@ def doublet_line_u(Xcp,Ycp,Zcp,dmz_dz,m=0):
         Xcp=Xcp[bOK]
         Ycp=Ycp[bOK]
         Zcp=Zcp[bOK]
-        print('>>>')
-        i30 = I30(a,b,c)
+
+        i30 = I30(a,b,c)/3 # NOTE: divided by 3 since 3 factorized in uz
         i50 = I50(a,b,c)
         i51 = I51(a,b,c)
         i52 = I52(a,b,c)
 
-        uz[bOK] =   dmz_dz/(4*np.pi)  * (   3 * Zcp**2 * i50 + 3*i52 - 6*Zcp * i51 - i30 )
+        uz[bOK] = 3*dmz_dz/(4*np.pi)  * (       Zcp**2 * i50 +   i52 - 2*Zcp * i51 - i30 )
         ux[bOK] = 3*dmz_dz/(4*np.pi)  * ( Xcp * Zcp    * i50 + m*i52 - (m*Zcp+Xcp) * i51 )
         uy[bOK] = 3*dmz_dz/(4*np.pi)  * ( Ycp * Zcp    * i50         -        Ycp  * i51 )
 
@@ -221,6 +221,12 @@ def doublet_line_u_num(Xcp,Ycp,Zcp,dmz_dz,m=0,zmax=1000,nQuad=100):
 #  I50       = (2 a c - b)/(3 a^3 (a c - b)^2) # <<< NOT Tilde
 #  I51       = 1/ (3 a (ac - b)^2)
 #  I52       = 1/(3 c (a c - b)^2)
+
+# --- INTEGRALS WRITTEN ALONG X AND USING PROPER a b c:   a^2 = x^2 + y^2 + z^2, b=my+x , c^2 = (1+m^2)
+# II30       = \int  1    / ( a^2  - 2 b x'  + c^2 x'^2 )^(3/2) dx'
+# II50       = \int  1    / ( a^2  - 2 b x'  + c^2 x'^2 )^(5/2) dx'
+# II51       = \int  x'   / ( a^2  - 2 b x'  + c^2 x'^2 )^(5/2) dx'
+# II52       = \int  x'^2 / ( a^2  - 2 b x'  + c^2 x'^2 )^(5/2) dx'
 
 # --- NOTE: INTEGRALS BELOW ARE "TILDE" INTEGRALS (a->atilde, b-> btilde, c->1)
 # atilde = a/c 
