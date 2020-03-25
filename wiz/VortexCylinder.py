@@ -110,6 +110,7 @@ def vc_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,polar_out=True,epsilon=0):
     EE = ellipe(k_2)
     KK = ellipk(k_2)
     #     PI = ellippi(k0_2,k_2)
+    k_2 [k_2>1]=1 # Safety purely for numerical precision
     PI = ellipticPiCarlson(k0_2,k_2)
     # --- Special values
     PI[PI==np.inf]=0
