@@ -27,7 +27,7 @@ def doublet_u(Xcp,Ycp,Zcp,m,x0=[0,0,0]):
     r_norm3=np.asarray(r_norm3)
 
     # --- Avoiding singularity by introducing a temporarily fake norm
-    bSing= r_norm3<1e-16
+    bSing= r_norm3<1e-8
     r_norm3[bSing]=1 # Temporary hack, replaced at the end
 
     r_norm5 = (r_norm3 )**(5/3)               # |r|**5
@@ -64,7 +64,7 @@ def doublet_u_polar(rcp,zcp,m_z,z0=0):
     r_norm3=np.asarray(r_norm3)
 
     # --- Avoiding singularity by introducing a temporarily fake norm
-    bSing= r_norm3<1e-16
+    bSing= r_norm3<1e-8
     r_norm3[bSing]=1 # Temporary hack, replaced at the end
 
     r_norm5 = (r_norm3 )**(5/3)               # |r|**5
@@ -121,12 +121,12 @@ def doublet_line_polar_u(rcp,zcp,dmz_dz, bSelfInd=False):
     z=np.asarray(zcp)
 
     # Vectorial "if" statements to isolate singular regions of the domain
-    bZ0    = np.abs(z)<1e-16
-    bR0    = np.abs(r)<1e-16
+    bZ0    = np.abs(z)<1e-8
+    bR0    = np.abs(r)<1e-8
     bZ0R0  = np.logical_and(bZ0,bR0)
-    bZ0Rp  = np.logical_and(bZ0, np.abs(r)>1e-16)
-    bR0Zp  = np.logical_and(bR0, z>1e-16)
-    bR0Zm  = np.logical_and(bR0, z<-1e-16)
+    bZ0Rp  = np.logical_and(bZ0, np.abs(r)>1e-8)
+    bR0Zp  = np.logical_and(bR0, z>1e-8)
+    bR0Zm  = np.logical_and(bR0, z<-1e-8)
     bOK    = np.logical_and(~bZ0,~bR0)
 
     uz=np.zeros(r.shape)
@@ -144,7 +144,6 @@ def doublet_line_polar_u(rcp,zcp,dmz_dz, bSelfInd=False):
 
     ur[bZ0R0] = 0
     uz[bZ0R0] = 0
-
 
     return ur, uz
 
@@ -174,14 +173,14 @@ def doublet_line_u(Xcp,Ycp,Zcp,dmz_dz,m=0,L=np.inf):
         c = np.sqrt(m**2+1)
 
         # On the doublet line, we force the velocity to be zero even if a solution exist
-        bOnLine = np.logical_and( np.abs(Ycp)<1e-16, np.abs(Xcp-m*Zcp)<1.e-16)
+        bOnLine = np.logical_and( np.abs(Ycp)<1e-8, np.abs(Xcp-m*Zcp)<1.e-8)
         bOnLine = np.logical_and(bOnLine, Zcp>=0)
         bOnLine = np.logical_and(bOnLine, Zcp<=L)
         ux[bOnLine]=0
         uy[bOnLine]=0
         uz[bOnLine]=0
         # Singularity condition of the integral:
-#         bSing = np.abs(a*c-b)<1e-16
+#         bSing = np.abs(a*c-b)<1e-8
 #         ux[bSing]=0
 #         uy[bSing]=0
 #         uz[bSing]=0

@@ -91,9 +91,13 @@ def vc_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,polar_out=True,epsilon=0):
     Iz = r < (EPSILON_AXIS * R)
     ur[Iz] = 0
     uz[Iz] = gamma_t/2 * (1 + z[Iz] / np.sqrt(z[Iz]** 2 + R**2))
+    # Singularity on rotor and close to R
+    IR = np.logical_and(np.abs((r-R))/R <1e-8 , np.abs(z/R)< 1e-8)
+    ur[IR] = 0          # TODO radial velocity is continuous
+    uz[IR] = gamma_t/4 
 
     # --- From this point on, variables have the size of ~Iz..
-    bnIz = np.logical_not(Iz)
+    bnIz = np.logical_not(np.logical_or(Iz,IR))
     r = r[bnIz]
     z = z[bnIz]
 
@@ -356,6 +360,15 @@ class TestCylinder(unittest.TestCase):
         ure,uze = vc_tang_u(1,0,-1,epsilon = 1e-1)
         np.testing.assert_almost_equal(uz,uze)
         np.testing.assert_almost_equal(ur,ure)
+
+    def test_VC_singularities_RadiusRotor(self):
+        # Singularity when r=~R, z=0 
+        # NOTE: test for exactly on the singularity done in test_VC_singularities
+        Xcp = -63.00000000000001; Ycp = 0.0; Zcp = 0.0
+        R   = 63
+        ur,uz = vc_tang_u (Xcp,Ycp,Zcp,gamma_t=-1,R=R,polar_out=True)
+        np.testing.assert_almost_equal(uz,-0.25, 8)
+
 
     def test_VC_regularization(self):
         # TODO!
