@@ -243,7 +243,7 @@ class WindTurbine:
     def set_chi(self,chi):
         self.chi=chi
     
-    def compute_u(self, Xg, Yg, Zg, only_ind=False, longi=False, tang=True, root=False, no_wake=False, ground=None, Model=None): 
+    def compute_u(self, Xg, Yg, Zg, only_ind=False, longi=False, tang=True, root=False, no_wake=False, ground=None, Model=None, R_far_field=6): 
         """ 
         INPUTS:
             Xg, Yg, Zg: Control points in global coordinates where the flow is to be computed. 
@@ -318,7 +318,7 @@ class WindTurbine:
                         if Model =='VC':
                                 uxc0,uyc0,uzc0 = vc_tang_u        (Xc0,Y,Zc0, gamma_t=self.gamma_t, R=self.R, polar_out=False)
                         elif Model =='VCFF':
-                            uxc0,uyc0,uzc0 = vc_tang_u_doublet(Xc0,Y,Zc0, gamma_t=self.gamma_t, R=self.R, polar_out=False,r_bar_Cut=6)
+                            uxc0,uyc0,uzc0 = vc_tang_u_doublet(Xc0,Y,Zc0, gamma_t=self.gamma_t, R=self.R, polar_out=False,r_bar_Cut=R_far_field)
                         elif Model =='VD':
                             uxc0,uyc0,uzc0 = doublet_line_u(Xc0, Y, Zc0, dmz_dz = self.gamma_t * self.R**2 * np.pi)
                         elif Model =='SS':
@@ -383,7 +383,7 @@ class WindTurbine:
             bDownStream=Zc0>=-0.20*self.R
 #             bDownStream=Zc0>=0
             Rc = np.sqrt(Xc0**2 + Yc0**2)
-            bRotorTube = Rc<self.R
+            bRotorTube = Rc<self.R*1.001 # we give a margin since VD and VC have fields very dissimilar at R+/-eps
             bSelZero = np.logical_and(bRotorTube,bDownStream)
             uxc[bSelZero]=0
             uyc[bSelZero]=0
