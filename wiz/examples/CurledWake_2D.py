@@ -1,5 +1,10 @@
 """ 
-Computes the velocity field in different plane downstream of a yawed wind turbine.
+Computes the velocity field in different planes downstream of a yawed wind turbine.
+
+Reference:
+    [1] Martinez-Tossas, Branlard, The curled wake model: equivalence of shed vorticity models. 2020
+    [2] E. Branlard - Wind Turbine Aerodynamics and Vorticity Based Method, Springer, 2017
+
 
 The coordinate system used is:
     z: posivite upwards
@@ -22,6 +27,8 @@ from wiz.VortexPoint import vps_u
 def ve_u(Ycp,Zcp,R,theta,theta_y,gamma_x,sigma=None):
     """
     Velocity field induced by a 2D ellipse of vorticity with intensity gamma_x.
+    Computed using integral 
+       u = int_0^(2pi) Ke omega  dtheta  See [1]
 
     INPUTS:
         theta  : linspace from 0 to 2pi
@@ -59,6 +66,7 @@ def ve_u(Ycp,Zcp,R,theta,theta_y,gamma_x,sigma=None):
 def vcl_u(Xcp,Ycp,Zcp,R,theta,theta_y,gamma_x,sigma=None):
     """
     Velocity field induced by semi infinite skewed vortex cylinder of longitudinal vorticity
+    See [2] Chpater 36, p451
 
     INPUTS:
         theta  : linspace from 0 to 2pi

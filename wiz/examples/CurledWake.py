@@ -1,6 +1,9 @@
 """ 
 Computes the velocity field in different plane downstream of a yawed wind turbine.
 
+Reference:
+    [1] Martinez-Tossas, Branlard, The curled wake model: equivalence of shed vorticity models. 2020
+
 The coordinate system used is:
     z: posivite upward
     x: streamwie, along the wind
@@ -28,7 +31,7 @@ def main():
     longi = False
     tang  = True 
     # --- Parameters for plotting
-    vD = [0,10] # Wake diameters 
+    vD = [0,10] # Wake diameters for planes downstream 
     ny = 40
     nz = 42
     yLIM =[-2,2] # xlim in Radius
@@ -86,7 +89,7 @@ def main():
         if clim is not None:
             lev=np.linspace(clim[0],clim[1],30)
         else:
-            lev=30
+            lev=np.linspace(np.min(Speed),np.max(Speed),30)
         im=ax.contourf(Y/R,Z/R,Speed,levels=lev)
         ax.plot(Rotor[1,:]/R,Rotor[2,:]/R,'k--') # rotor projected
         cb=fig.colorbar(im)

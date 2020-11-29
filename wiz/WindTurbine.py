@@ -379,8 +379,8 @@ class WindTurbine:
 #             uxc[:]=0
 #             uyc[:]=0
 #             uzc[:]=1
-            # Zero wake induction
-            bDownStream=Zc0>=-0.20*self.R
+            # Zero self induction and Wake induction
+            bDownStream=Zc0>=-0.60*self.R # NOTE: margin to avoid self induction
 #             bDownStream=Zc0>=0
             Rc = np.sqrt(Xc0**2 + Yc0**2)
             bRotorTube = Rc<self.R*1.001 # we give a margin since VD and VC have fields very dissimilar at R+/-eps

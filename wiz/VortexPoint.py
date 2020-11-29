@@ -1,7 +1,17 @@
+""" 
+2D vortex points 
+For 3D see VortexParticles
+
+"""
 import numpy as np
 
 
 def vp_u(CP,Pv,Gamma=1,rcore=0,bViscous=False): 
+    """ 
+    Induced velocity by one 2D vortex point on one Control Point (CP)
+    CP: position of control point
+    Pv: position of vortex
+    """
     DP = CP - Pv
     r2 = DP[0] ** 2 + DP[1] ** 2
     t = np.array([- DP[1],DP[0]])
@@ -16,7 +26,8 @@ def vp_u(CP,Pv,Gamma=1,rcore=0,bViscous=False):
 
 def vps_u(CP,XV,Gammas,SmoothModel=0,KernelOrder=2,SmoothParam=None):
     """
-    low level interface, for N point Vortices
+    low level interface, for N (2D?) point Vortices
+
     # Takes matrices as input of size ( : , 3) or (:,2)
 
     CP: control points where the velocity is computed

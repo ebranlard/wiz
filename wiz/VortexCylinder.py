@@ -70,6 +70,17 @@ def vc_tang_u(Xcp,Ycp,Zcp,gamma_t=-1,R=1,polar_out=True,epsilon=0):
       gamma_t: tangential vorticity sheet strength of the cylinder
       R: cylinder radius
       epsilon : Regularization parameter, e.g. epsilon=0.0001*R
+
+    EXAMPLE:
+        vx      = np.linspace(-3, 2, 30)
+        vr      = np.linspace(-2, 2, 20)
+        Xcp,Rcp = np.meshgrid(vx,vr)
+        ur, ux  = vc_tang_u(Rcp, Rcp*0, Xcp, gamma_t=-0.3)
+        fig,ax = plt.subplots()
+        im = ax.contourf(Xcp,Rcp, ur**2+(1+ux)**2)
+        cb = fig.colorbar(im)
+        plt.show()
+
     Reference: [1,2],  in particular, equations (7-8) from [1]"""
     EPSILON_AXIS=1e-7; # relative threshold for using axis formula
 
