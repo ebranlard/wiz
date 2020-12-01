@@ -44,16 +44,20 @@ Found in the folder `coupling_examples`
 
 
 ## References and how to cite
-The main paper describing this repository is currently under review: 
+The main paper describing this repository is: 
 ```bibtex
 @article{Branlard:2020induction,
     title = {Assessing the blockage effect of wind turbines and wind farms using an analytical vortex model},
     author = {E. Branlard and A. R. {Meyer Forsting}},
-    journal = {Wind Energy (under review)},
+    journal = {Wind Energy},
+    volume = {23},
+    number = {11},
+    pages = {2068-2086},
+    doi = {https://doi.org/10.1002/we.2546},
     year = "2020",
 }
 ```
-In the meantime the following previous references may be used:
+The following previous references may also be used:
 ```bibtex
 @INPROCEEDINGS{Branlard:2015induction,
     title     = "Using a cylindrical vortex model to assess the induction zone infront of aligned and yawed rotors",
