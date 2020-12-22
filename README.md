@@ -50,7 +50,11 @@ The latest paper describing this repository is the
 @article{Branlard:2020induction,
     title = {Assessing the blockage effect of wind turbines and wind farms using an analytical vortex model},
     author = {E. Branlard and A. R. {Meyer Forsting}},
-    journal = {Wind Energy (under review)},
+    journal = {Wind Energy},
+    volume = {23},
+    number = {11},
+    pages = {2068-2086},
+    doi = {https://doi.org/10.1002/we.2546},
     year = "2020",
 }
 ```
