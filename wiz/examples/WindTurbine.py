@@ -2,7 +2,6 @@
 from __future__ import division
 from __future__ import print_function
 # --- General
-import unittest
 import numpy as np
 import matplotlib.pyplot as plt
 # --- Local
@@ -12,7 +11,7 @@ from wiz.Solver import Ct_const_cutoff
 def main():
     Ground    = False
     no_wake   = False # Used when coupled to FLORIS
-    only_ind  = True  # 
+    only_ind  = False  # 
     R         = 65
     h_hub     = 0.0*R
     r_bar_cut = 0.11
@@ -38,7 +37,7 @@ def main():
 
     for ye in YE:
         WT.update_yaw_pos( wd-ye)
-        WT.update_wind([10*np.sin(wd),0,10*np.cos(wd)])
+        WT.update_wind([U0*np.sin(wd),0,U0*np.cos(wd)])
 
         # --- Flow field and speed
         nx=50
@@ -66,4 +65,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-#     unittest.main()

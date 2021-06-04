@@ -23,7 +23,7 @@ except:
     raise Exception('This script requires the package `pybra` from https://github.com/ebranlard/pybra/')
 
 # --- Parameters
-bAddFlow=True
+bAddFlow=False
 R=1
 XLIM=[-3*R,3*R] # 
 ZLIM=[-3*R,3*R] # 
@@ -33,7 +33,7 @@ if bAddFlow:
 else:
     CLIM=[0.0,1.1]
     gamma_t=-1
-nx = 50    # Number of points for velocity evaluation
+nx = 650    # Number of points for velocity evaluation
 nz = nx 
 
 # LIC params
@@ -127,7 +127,9 @@ def lic_step(fig,t,it=0,save=False):
     if bAddFlow:
         yseed=np.linspace(XLIM[0]*0.9,XLIM[1]*0.9,17)
     else:
-        yseed=np.linspace(-0.88*R,0.88*R,7)
+        #yseed=np.linspace(-0.88*R,0.88*R,7)
+        yseed=np.linspace(-0.9*R,0.9*R,7)
+    print('yseeds',yseed)
     start=np.array([yseed*0,yseed])
     sp=ax.streamplot(zs,xs,uz,ux,color='k',start_points=start.T,linewidth=0.7,density=30,arrowstyle='-')
     # qv=streamQuiver(ax,sp,spacing=0.8,scale=40,angles='xy')
@@ -152,6 +154,10 @@ kernel_t0  =lic_step(fig,t=0,it=0,save=False)
 # print(kernel_t0)
 # print(kernel_tmax)
 # np.testing.assert_almost_equal(kernel_t0,kernel_tmax)
+
+fig.savefig('_VortexCylinderLIC.pdf')
+
+
 plt.show()
 
 if movie:

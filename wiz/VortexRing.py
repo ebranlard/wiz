@@ -18,8 +18,29 @@ def ring_u_polar_singular(r,z,Gamma=-1,r0=1):
     Induced velocity from a vortex ring of radius r0, located at z=0 
     Polar coordinates in and out.
     Singular formulation
+    Formulation from Branlard 2017 [1], equations (35.7-35.8)
     """
-    # Formulation from Yoon 2004
+    k2 = 4 * r * r0 / ((r+r0)**2 + (z)**2)
+    k  = np.sqrt(k2)
+
+    K =  ellipk(k2)
+    E =  ellipe(k2)
+
+    fact = Gamma/(4*np.pi*r0)*k
+    A = (2-k2)/(2-2*k2)
+    B = r0*k2/(2*r*(1-k2))
+
+    ur = fact  * z/r0 * (r0/r)**(3/2) * (   A*E   - K )
+    uz = fact         * (r0/r)**(1/2) * ( (B-A)*E + K )
+    return ur,uz
+
+def ring_u_polar_singularb(r,z,Gamma=-1,r0=1):
+    """ 
+    Induced velocity from a vortex ring of radius r0, located at z=0 
+    Polar coordinates in and out.
+    Singular formulation
+    Formulation from Yoon 2004
+    """
     a = np.sqrt((r+r0)**2 + (z)**2)
     m = 4 * r * r0 / (a ** 2)
     A = (z)**2 + r**2 + r0**2
@@ -357,8 +378,21 @@ class TestRing(unittest.TestCase):
 #         print(uz)
 
 
+    def test_Ring_formulations(self):
+        # Compare different formulations
+        Gamma, R = -3, 10
+        for ri in np.linspace(0.001,2*R,10):
+            z=np.linspace(-2*R,2*R,5)
+            r=z*0+ri
+            ur1,uz1 = ring_u_polar_singular(r,z,Gamma, R)
+            ur2,uz2 = ring_u_polar_singularb(r,z,Gamma, R)
+            np.testing.assert_almost_equal(ur1, ur2, decimal=9)
+            np.testing.assert_almost_equal(uz1, uz2, decimal=9)
+
+
 if __name__ == "__main__":
 #     TestRing().test_singularities()
 #     TestRing().test_rotor()
+#     TestRing().test_Ring_formulations()
     unittest.main()
 

@@ -12,9 +12,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 # --- Local
 from wiz.VortexCylinder import vc_tang_u
-
 try:
-    from pybra.colors import *
+    from welib.tools.colors import *
 except:
     pass
 

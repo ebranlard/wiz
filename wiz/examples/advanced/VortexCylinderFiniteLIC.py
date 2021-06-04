@@ -31,8 +31,8 @@ XLIM=[-3*R,3*R] #
 ZLIM=[-5*R,5*R] # 
 CLIM=[0.0,1]
 gamma_t=-1
-nx = 400    # Number of points for velocity evaluation
-nz = 201
+nx = 800    # Number of points for velocity evaluation
+nz = 501
 
 # LIC params
 nLICKernel=31
@@ -139,6 +139,10 @@ kernel_t0  =lic_step(fig,t=0,it=0,save=False)
 # print(kernel_t0)
 # print(kernel_tmax)
 # np.testing.assert_almost_equal(kernel_t0,kernel_tmax)
+
+fig.savefig('_VortexCylinderFiniteLIC.pdf')
+
+
 plt.show()
 
 if movie:
